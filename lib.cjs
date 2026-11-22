@@ -343,9 +343,9 @@ function subAgents(sessDir, now, parentStopped, classify) {
     scan(wd, w, wfJournal(path.join(wd, 'journal.jsonl')));
   }
   // totaux par type d'agent sur les 6 dernières heures, avant la coupe (les agents en cours passent en premier)
-  const types = {};
+  const types = Object.create(null); // sans prototype : une clé « __proto__ » ou « constructor » ne touche pas Object.prototype
   for (const a of out) {
-    const t = types[a.type] || (types[a.type] = { live: 0, total: 0, last: 0, models: {} });
+    const t = types[a.type] || (types[a.type] = { live: 0, total: 0, last: 0, models: Object.create(null) });
     t.total++; if (a.status === 'running') t.live++;
     t.last = Math.max(t.last, a.mtime);
     if (a.model) t.models[a.model] = (t.models[a.model] || 0) + 1;

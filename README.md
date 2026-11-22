@@ -75,7 +75,7 @@ The full format (sessions, agents, activity, phases, usage, tasks, translations)
 | `node server.cjs status` / `url [folder]` / `stop` | server state, page address, stop |
 | `node server.cjs snapshot <folder>` | prints the snapshot the dashboard reads (to check your file) |
 
-**Settings**: `config.json` in the state folder (`{ "port": 4870, "editorUrl": "vscode://file{path}:{line}", "hideCommands": false }`), or the `ORCH_DASHBOARD_PORT`, `ORCH_DASHBOARD_EDITOR`, `ORCH_DASHBOARD_HIDE_COMMANDS` and `ORCH_DASHBOARD_HOME` variables. The state folder is `%LOCALAPPDATA%\orchestrator-dashboard` on Windows, `~/Library/Application Support/orchestrator-dashboard` on macOS and `$XDG_STATE_HOME/orchestrator-dashboard` (or `~/.local/state/...`) elsewhere; an existing `~/.claude/orchestrator-dashboard` folder is still used. `server.log` is rotated to `server.log.1` above 1 MB.
+**Settings**: `config.json` in the state folder (`{ "port": 4870, "editorUrl": "vscode://file{path}:{line}", "hideCommands": false }`), or the `ORCH_DASHBOARD_PORT`, `ORCH_DASHBOARD_EDITOR`, `ORCH_DASHBOARD_HIDE_COMMANDS` and `ORCH_DASHBOARD_HOME` variables. The state folder is `%LOCALAPPDATA%\orchestrator-dashboard-state` on Windows, `~/Library/Application Support/orchestrator-dashboard` on macOS and `$XDG_STATE_HOME/orchestrator-dashboard` (or `~/.local/state/...`) elsewhere; an existing `~/.claude/orchestrator-dashboard` folder is still used. `server.log` is rotated to `server.log.1` above 1 MB.
 
 ## Security
 

@@ -143,13 +143,21 @@ const BASE_TOOLS = [
   { id: 'web', label: T('tool.web'), desc: T('tool.web.d'), color: 'var(--m-fable)' },
   { id: 'shell', label: T('tool.shell'), desc: T('tool.shell.d'), color: 'var(--muted)' },
 ];
-// motifs de secrets courants (jetons Bearer, options --token/--password, clés connues) : masqués avant d'atteindre la page
-const SECRET_BEARER_RE = /\bBearer\s+[^\s"']{4,}/gi;
-const SECRET_VALUE_RE = /((?:--?(?:token|password|passwd|secret|api[-_]?key|apikey|auth)(?:=|\s+))|(?:\b(?:password|passwd|secret|token|api[-_]?key|apikey|authorization)\s*[=:]\s*))("[^"]*"|'[^']*'|[^\s"']{4,})/gi;
+// motifs de secrets courants, masqués avant d'atteindre la page (et avant toute troncature)
+const SECRET_AUTH_RE = /\b(Bearer|Basic)\s+[^\s"']{4,}/gi;                       // Authorization: Bearer x / Basic <base64>
+const SECRET_OPT_RE = /(^|\s)(--?(?:token|password|passwd|secret|api[-_]?key|apikey|key|auth)(?:\s+|=))("[^"]*"|'[^']*'|[^\s"']+)/gi; // --token x, --password=x
+const SECRET_USER_RE = /(^|\s)((?:-u|--user)(?:\s+|=))("[^"]*:[^"]*"|'[^']*:[^']*'|[^\s"':]+:[^\s"']*)/gi;                        // curl -u user:pass
+const SECRET_KV_RE = /(?<![\w.-])([\w.-]*?(?:password|passwd|secret|token|api[-_]?key|apikey|key)[\w.-]*?)(\s*[=:]\s*)("[^"]*"|'[^']*'|[^\s"'&;]+)/gi; // ?token= &api_key= DB_PASSWORD= "X-Api-Key: v"
 const SECRET_TOKEN_RE = /\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16})\b/g;
-const maskSecrets = (s) => s.replace(SECRET_BEARER_RE, 'Bearer ***').replace(SECRET_VALUE_RE, '$1***').replace(SECRET_TOKEN_RE, '***');
-// option : ne pas montrer les commandes Bash/PowerShell des transcripts (seul le nom de l'outil reste affiché)
+const maskSecrets = (s) => String(s)
+  .replace(SECRET_AUTH_RE, '$1 ***')
+  .replace(SECRET_OPT_RE, '$1$2***')
+  .replace(SECRET_USER_RE, '$1$2***')
+  .replace(SECRET_KV_RE, '$1$2***')
+  .replace(SECRET_TOKEN_RE, '***');
+// option : ne pas montrer les commandes shell des transcripts et des fichiers json (seul le nom de l'outil reste affiché)
 // ORCH_DASHBOARD_HIDE_COMMANDS=1, ou "hideCommands": true dans config.json
+const SHELL_TOOL_RE = /^(Bash|PowerShell|shell|sh|cmd)$/i;
 function hideCommands() {
   const env = process.env.ORCH_DASHBOARD_HIDE_COMMANDS;
   if (env != null && env !== '') return /^(1|true|yes|oui|on)$/i.test(env.trim());
@@ -157,15 +165,21 @@ function hideCommands() {
   return !!(j && typeof j === 'object' && j.hideCommands === true);
 }
 const WHAT_MAX = 160;
+// texte affichable d'un appel : vide pour une commande shell quand l'option est active, sinon masqué.
+// Le texte est borné avant masquage (sans coût sur les gros blocs) ; la troncature d'affichage vient après.
+function shown(name, raw) {
+  if (SHELL_TOOL_RE.test(String(name || '')) && hideCommands()) return '';
+  return maskSecrets(String(raw == null || typeof raw === 'object' ? '' : raw).slice(0, 4000));
+}
 // résumé d'un appel d'outil (commande, fichier, agent…), sur une ligne
 function toolWhat(name, input) {
   const i = input || {};
   let w;
-  if (name === 'Bash' || name === 'PowerShell') w = hideCommands() ? '' : maskSecrets(String(i.command || ''));
+  if (name === 'Bash' || name === 'PowerShell') w = i.command;
   else if (/^(Edit|Write|MultiEdit|NotebookEdit)$/.test(name)) w = i.file_path || i.notebook_path;
   else if (name === 'Agent' || name === 'Task') w = `${i.subagent_type || ''} : ${i.description || ''}`;
   else w = i.description || i.file_path || i.pattern || i.url || i.query || i.name || i.title || i.scriptPath || '';
-  return String(w || '').replace(/[\t\r\n]+/g, ' ').slice(0, WHAT_MAX);
+  return shown(name, String(w || '').replace(/[\t\r\n]+/g, ' ')).slice(0, WHAT_MAX);
 }
 // résumé tel qu'un hook PreToolUse le note dans un fil d'activité (pour retrouver la ligne d'un appel lu dans un transcript)
 function guardWhat(name, input) {
@@ -189,15 +203,18 @@ const LIVE_MS = 15 * 60 * 1000;           // fichier modifié depuis moins longt
 function claudeRoot() {
   return process.env.CLAUDE_CONFIG_DIR ? toNative(process.env.CLAUDE_CONFIG_DIR) : path.join(os.homedir(), '.claude');
 }
-// dossier du tableau de bord (registre des projets, adresse du serveur, journal, config.json) :
+// dossier d'état du tableau de bord (registre des projets, adresse du serveur, journal, config.json) :
 // $ORCH_DASHBOARD_HOME ; sinon l'ancien dossier sous la racine Claude s'il existe déjà (reprise) ; sinon
-// %LOCALAPPDATA% (Windows), ~/Library/Application Support (macOS), $XDG_STATE_HOME ou ~/.local/state (autres)
+// %LOCALAPPDATA%\orchestrator-dashboard-state (Windows), ~/Library/Application Support (macOS), $XDG_STATE_HOME ou
+// ~/.local/state (autres). Sous Windows, le nom n'est PAS « orchestrator-dashboard » : c'est le dossier d'installation
+// par défaut de install.ps1, qu'une réinstallation supprime (Remove-Item -Recurse).
+const WIN_STATE_DIR = 'orchestrator-dashboard-state';
 function stateDir() {
   if (process.env.ORCH_DASHBOARD_HOME) return toNative(process.env.ORCH_DASHBOARD_HOME);
   const legacy = path.join(claudeRoot(), 'orchestrator-dashboard');
   if (stat(legacy)) return legacy;
   const home = os.homedir();
-  if (process.platform === 'win32') return path.join(process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local'), 'orchestrator-dashboard');
+  if (process.platform === 'win32') return path.join(process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local'), WIN_STATE_DIR);
   if (process.platform === 'darwin') return path.join(home, 'Library', 'Application Support', 'orchestrator-dashboard');
   return path.join(process.env.XDG_STATE_HOME ? toNative(process.env.XDG_STATE_HOME) : path.join(home, '.local', 'state'), 'orchestrator-dashboard');
 }
@@ -246,8 +263,20 @@ function findTranscript(sid, dirs) {
   if (c && !c.file && Date.now() - c.at < 10 * 60 * 1000) return null;
   const projects = path.join(claudeRoot(), 'projects');
   let file = null;
-  // seuls les dossiers des projets inscrits sont cherchés (jamais tout <racine Claude>/projects)
+  // seuls les dossiers des projets inscrits sont cherchés (jamais tout <racine Claude>/projects) : d'abord leur dossier
+  // exact, puis les dossiers de leurs worktrees et sous-dossiers, dont le nom commence par « <dossier assaini>- »
+  const norm = (s) => (process.platform === 'win32' ? s.toLowerCase() : s);
   for (const d of dirs) { const f = path.join(projects, sanitize(d), `${sid}.jsonl`); if (stat(f)) { file = f; break; } }
+  if (!file) {
+    const names = listDir(projects);
+    search: for (const d of dirs) {
+      const pre = norm(`${sanitize(d)}-`);
+      for (const n of names) {
+        if (!norm(n).startsWith(pre)) continue;
+        const f = path.join(projects, n, `${sid}.jsonl`); if (stat(f)) { file = f; break search; }
+      }
+    }
+  }
   transcriptPath.set(sid, { file, at: Date.now() });
   return file;
 }
@@ -284,7 +313,7 @@ function transcriptInfo(f, classify) {
         // rapport rendu à l'appelant : le sous-agent a fini (son transcript s'arrête sur cet appel, sans end_turn)
         if (b.name === 'SubagentHandback') { handback = true; continue; }
         const what = toolWhat(b.name, b.input);
-        const x = { t, tool: b.name, what, cat: classify(b.name, what), refused: false, sig: sigOf(b.name, String(guardWhat(b.name, b.input)).replace(/[\t\r\n]+/g, ' ').slice(0, 300)) };
+        const x = { t, tool: b.name, what, cat: classify(b.name, what), refused: false, sig: sigOf(b.name, maskSecrets(String(guardWhat(b.name, b.input)).replace(/[\t\r\n]+/g, ' ').slice(0, 4000)).slice(0, 300)) };
         tools.push(x); if (b.id) byId.set(b.id, x);
       } else if (b.type === 'tool_result' && b.is_error && byId.has(b.tool_use_id)) {
         const ct = typeof b.content === 'string' ? b.content : Array.isArray(b.content) ? b.content.map((k) => (k && k.text) || '').join(' ') : '';
@@ -534,7 +563,7 @@ function itemRefs(texts, links) {
 
 module.exports = {
   T, toNative, same, inside, readText, stat, listDir, tailText, tailLines, readJson, readShConfig,
-  refreshProcs, pidAlive, classifier, BASE_TOOLS, toolWhat, guardWhat, sigOf, maskSecrets, hideCommands,
+  refreshProcs, pidAlive, classifier, BASE_TOOLS, toolWhat, guardWhat, sigOf, maskSecrets, hideCommands, shown,
   RECENT_MS, LIVE_MS, claudeRoot, stateDir, rotateLog, settings, usageBand, findTranscript, transcriptInfo, readRoster, claudeAgents, attributeSubagentTools,
   httpUrl, cleanText, plain, editorUrl, stepContext, localTarget, normStep, itemRefs,
 };

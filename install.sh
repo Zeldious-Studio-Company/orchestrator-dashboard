@@ -9,6 +9,7 @@
 #   ORCH_DASHBOARD_SHA256   expected SHA256 of the downloaded archive; the install stops on mismatch
 #   ORCH_DASHBOARD_DIR      install folder (default: ~/.local/share/orchestrator-dashboard)
 #   ORCH_DASHBOARD_BIN      folder for the launcher (default: ~/.local/bin)
+# The v1.0.0 address above only works once the v1.0.0 tag is published; before that, use ORCH_DASHBOARD_REF with a branch.
 set -eu
 
 REPO="Zeldious-Studio-Company/orchestrator-dashboard"
@@ -69,12 +70,14 @@ tar -xzf "$TMP/src.tar.gz" -C "$TMP/src" --strip-components=1
 is_install "$TMP/src" || fail "unexpected archive content."
 
 # Refuse to replace a folder that is not an orchestrator-dashboard install, since it is deleted below.
-# This check runs before the old server is stopped, so a server.cjs that is not ours is never executed.
+# This check runs before anything else in the old folder is touched.
 case "$DIR" in / | "$HOME") fail "refusing to use $DIR as the install folder." ;; esac
 if [ -e "$DIR" ]; then
   is_install "$DIR" || fail "refusing to replace $DIR: it is not an orchestrator-dashboard install (no server.cjs and package.json named orchestrator-dashboard). Remove it yourself or set ORCH_DASHBOARD_DIR."
-  # Stop a running server from a previous install before replacing its files.
-  node "$DIR/server.cjs" stop >/dev/null 2>&1 || true
+  # Stop a running server from a previous install. The OLD server.cjs in $DIR is never executed:
+  # the stop command comes from the freshly downloaded copy, and it finds the server through the
+  # state folder (ORCH_DASHBOARD_HOME or ~/.claude/orchestrator-dashboard), not through $DIR.
+  node "$TMP/src/server.cjs" stop >/dev/null 2>&1 || true
   rm -rf "$DIR"
 fi
 mkdir -p "$(dirname "$DIR")"

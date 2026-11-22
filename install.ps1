@@ -55,8 +55,9 @@
     if ($full -eq [IO.Path]::GetPathRoot($full).TrimEnd('\') -or $full -eq $env:USERPROFILE.TrimEnd('\')) { throw "Refusing to use $full as the install folder." }
     if (Test-Path -LiteralPath $dir) {
       if (-not (Test-Install $dir)) { throw "Refusing to replace $dir: it is not an orchestrator-dashboard install (no server.cjs and package.json named orchestrator-dashboard). Remove it yourself or set ORCH_DASHBOARD_DIR." }
-      # Stop a running server from a previous install before replacing its files.
-      try { & node (Join-Path $dir 'server.cjs') stop *> $null } catch {}
+      # Stop a running server from a previous install. The OLD server.cjs in $dir is never executed:
+      # the stop command comes from the freshly downloaded copy, which finds the server through the state folder.
+      try { & node (Join-Path $src.FullName 'server.cjs') stop *> $null } catch {}
       Remove-Item -LiteralPath $dir -Recurse -Force
     }
     New-Item -ItemType Directory -Path (Split-Path $dir) -Force | Out-Null

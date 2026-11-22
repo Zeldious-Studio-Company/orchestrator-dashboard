@@ -13,7 +13,7 @@ A live, local web dashboard for **AI agent orchestrators**. It shows what your o
 
 ## Install (no git, no GitHub account)
 
-The installer downloads a fixed release over HTTPS (Node.js 18+ required) and adds an `orchestrator-dashboard` command, which replaces `node server.cjs` below. Do not pipe it into a shell: download the script, check it, read it, then run it.
+The `v1.0.0` addresses below only work once the `v1.0.0` tag is published (before that, set `ORCH_DASHBOARD_REF` to a branch). The installer downloads a fixed release over HTTPS (Node.js 18+ required) and adds an `orchestrator-dashboard` command, which replaces `node server.cjs` below. Do not pipe it into a shell: download the script, check it, read it, then run it.
 
 Windows (PowerShell):
 

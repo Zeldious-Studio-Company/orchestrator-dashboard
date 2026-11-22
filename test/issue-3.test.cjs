@@ -39,6 +39,13 @@ test('installeurs : le dossier n\'est supprimé qu\'après contrôle de l\'insta
   assert.ok(sh.indexOf('is_install "$DIR"') > 0 && sh.indexOf('is_install "$DIR"') < sh.indexOf('rm -rf "$DIR"'));
 });
 
+test('installeurs : l\'ancien server.cjs du dossier d\'installation n\'est jamais exécuté', () => {
+  assert.doesNotMatch(read('install.sh'), /node "\$DIR\/server\.cjs" stop/);
+  assert.match(read('install.sh'), /node "\$TMP\/src\/server\.cjs" stop/);
+  assert.doesNotMatch(read('install.ps1'), /Join-Path \$dir 'server\.cjs'\) stop/);
+  assert.match(read('install.ps1'), /Join-Path \$src\.FullName 'server\.cjs'\) stop/);
+});
+
 // ---------- comportement de install.sh (fausse commande curl, pas de réseau) ----------
 // Sous Windows, node cherche « sh » dans le PATH de l'appelant : on prend le sh.exe de Git Bash ou MSYS2 s'il existe.
 const SH = process.platform === 'win32'
@@ -84,6 +91,7 @@ function runInstall({ archive, env = {}, dir }) {
     env: {
       PATH: [posix(bin), posix(path.dirname(process.execPath)), '/usr/bin', '/bin'].join(':'),
       HOME: posix(home),
+      ORCH_DASHBOARD_HOME: posix(tmp('state')),
       ORCH_DASHBOARD_DIR: posix(dir),
       ORCH_DASHBOARD_BIN: posix(launcherDir),
       ...env,
@@ -145,6 +153,19 @@ shTest('un server.cjs d\'un autre projet n\'est pas exécuté avant le refus', (
   const r = runInstall({ archive: makeArchive(), dir });
   assert.notStrictEqual(r.status, 0);
   assert.ok(!fs.existsSync(marker), 'le server.cjs étranger a été exécuté');
+});
+
+shTest('un faux dossier au bon nom : son server.cjs n\'est jamais exécuté', () => {
+  const dir = newDir();
+  fs.mkdirSync(dir, { recursive: true });
+  // Le marqueur est hors du dossier : sinon la suppression du dossier l'effacerait même si le code avait tourné.
+  const marker = path.join(tmp('marker'), 'execute.marker');
+  fs.writeFileSync(path.join(dir, 'server.cjs'), `require('fs').writeFileSync(${JSON.stringify(marker)}, 'piege');\n`);
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'orchestrator-dashboard' }));
+  const r = runInstall({ archive: makeArchive(), dir });
+  assert.strictEqual(r.status, 0, r.out);
+  assert.ok(!fs.existsSync(marker), 'le server.cjs du faux dossier a été exécuté');
+  assert.strictEqual(fs.readFileSync(path.join(dir, 'server.cjs'), 'utf8'), '// test\n', 'le dossier n\'a pas été remplacé par la version téléchargée');
 });
 
 shTest('une installation existante est remplacée', () => {

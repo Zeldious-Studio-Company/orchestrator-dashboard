@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "orchestrator": "CrewRunner",
+  "project": { "name": "Shop API (demo)", "badges": [{ "text": "demo", "tone": "info" }] },
+  "run": { "state": "active" },
+  "phases": { "list": [{ "en": "Plan", "fr": "Plan" }, { "en": "Build", "fr": "Code" }, { "en": "Review", "fr": "Revue" }, { "en": "Ship", "fr": "Livraison" }], "current": 1, "reached": 1 },
+  "sessions": [
+    { "id": "lead", "name": "Lead planner", "kind": "planner", "kindLabel": { "en": "planner", "fr": "planificateur" }, "alive": true, "status": "running", "phase": "Build", "model": "claude-opus-5-5" },
+    { "id": "w1", "name": "Worker 1", "kind": "worker", "kindLabel": { "en": "worker", "fr": "ouvrier" }, "parent": "lead", "alive": true, "auto": true, "status": "waiting", "waitingFor": "review", "model": "claude-sonnet-5-5" },
+    { "id": "w2", "name": "Worker 2", "kind": "worker", "kindLabel": { "en": "worker", "fr": "ouvrier" }, "parent": "lead", "alive": false, "auto": true, "status": "blocked", "blockedReason": "Missing Stripe test key" }
+  ],
+  "activity": [
+    { "session": "w1", "agent": "coder", "tool": "Bash", "what": "git commit -m \"feat: cart totals\"" },
+    { "session": "lead", "tool": "http", "category": "jira", "what": "POST /issue SHOP-12" },
+    { "session": "w2", "tool": "Bash", "what": "curl https://api.stripe.com/v1/charges", "blocked": true }
+  ],
+  "tools": [{ "id": "jira", "label": "Jira", "desc": { "en": "tickets", "fr": "tickets" }, "color": "var(--info)", "icon": "board" }],
+  "agents": [
+    { "name": "coder", "session": "w1", "model": "claude-sonnet-5-5", "status": "running", "description": "Implements SHOP-12", "tools": [{ "tool": "Edit", "what": "src/cart.ts" }] },
+    { "name": "tester", "session": "lead", "model": "claude-haiku-5-5", "status": "done", "description": "Runs the test suite" }
+  ],
+  "roster": [{ "name": "coder", "description": "Writes code", "model": "sonnet" }, { "name": "reviewer", "description": "Reviews pull requests" }],
+  "journal": ["Plan approved", "SHOP-12 started"],
+  "inbox": { "items": ["Use Postgres 17"], "hint": { "en": "Write instructions in inbox.txt", "fr": "Écris tes consignes dans inbox.txt" } },
+  "feed": { "title": { "en": "Triggers", "fr": "Déclencheurs" }, "items": [{ "chip": "cron", "text": "Nightly run" }] },
+  "usage": { "windows": [{ "label": { "en": "Token budget", "fr": "Budget de tokens" }, "percent": 64 }] },
+  "links": { "item": "https://jira.example.com/browse/{id}" },
+  "tasks": [
+    { "id": "stripe-key", "kind": "blocked", "title": { "en": "Provide the Stripe test key", "fr": "Fournir la clé de test Stripe" }, "summary": { "en": "Worker 2 is waiting for #12", "fr": "Worker 2 attend #12" },
+      "steps": [
+        { "text": { "en": "Create a test key", "fr": "Crée une clé de test" }, "url": "https://dashboard.stripe.com/test/apikeys" },
+        { "text": { "en": "Put it in the example file", "fr": "Mets-la dans le fichier d'exemple" }, "path": "config.example.env", "line": 1 },
+        { "text": { "en": "Restart the worker", "fr": "Relance le worker" }, "cmd": "crew resume w2", "where": { "en": "Terminal, in the project folder", "fr": "Terminal, dans le dossier du projet" } }
+      ] }
+  ],
+  "alerts": [{ "tone": "warn", "title": "Budget", "text": { "en": "64% of the token budget used", "fr": "64 % du budget de tokens utilisé" } }]
+}

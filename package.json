@@ -1,0 +1,13 @@
+{
+  "name": "orchestrator-dashboard",
+  "version": "1.0.0",
+  "description": "Live local dashboard for AI agent orchestrators: sessions, agents, tools, activity and step-by-step human actions. Plug any orchestrator through a JSON file or an adapter.",
+  "license": "MIT",
+  "bin": { "orchestrator-dashboard": "server.cjs" },
+  "scripts": {
+    "demo": "node server.cjs start examples",
+    "stop": "node server.cjs stop"
+  },
+  "engines": { "node": ">=18" },
+  "keywords": ["ai-agents", "orchestrator", "dashboard", "claude-code", "multi-agent", "observability"]
+}

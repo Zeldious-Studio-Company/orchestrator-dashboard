@@ -143,15 +143,29 @@ const BASE_TOOLS = [
   { id: 'web', label: T('tool.web'), desc: T('tool.web.d'), color: 'var(--m-fable)' },
   { id: 'shell', label: T('tool.shell'), desc: T('tool.shell.d'), color: 'var(--muted)' },
 ];
+// motifs de secrets courants (jetons Bearer, options --token/--password, clés connues) : masqués avant d'atteindre la page
+const SECRET_BEARER_RE = /\bBearer\s+[^\s"']{4,}/gi;
+const SECRET_VALUE_RE = /((?:--?(?:token|password|passwd|secret|api[-_]?key|apikey|auth)(?:=|\s+))|(?:\b(?:password|passwd|secret|token|api[-_]?key|apikey|authorization)\s*[=:]\s*))("[^"]*"|'[^']*'|[^\s"']{4,})/gi;
+const SECRET_TOKEN_RE = /\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16})\b/g;
+const maskSecrets = (s) => s.replace(SECRET_BEARER_RE, 'Bearer ***').replace(SECRET_VALUE_RE, '$1***').replace(SECRET_TOKEN_RE, '***');
+// option : ne pas montrer les commandes Bash/PowerShell des transcripts (seul le nom de l'outil reste affiché)
+// ORCH_DASHBOARD_HIDE_COMMANDS=1, ou "hideCommands": true dans config.json
+function hideCommands() {
+  const env = process.env.ORCH_DASHBOARD_HIDE_COMMANDS;
+  if (env != null && env !== '') return /^(1|true|yes|oui|on)$/i.test(env.trim());
+  const j = readJson(path.join(stateDir(), 'config.json'));
+  return !!(j && typeof j === 'object' && j.hideCommands === true);
+}
+const WHAT_MAX = 160;
 // résumé d'un appel d'outil (commande, fichier, agent…), sur une ligne
 function toolWhat(name, input) {
   const i = input || {};
   let w;
-  if (name === 'Bash' || name === 'PowerShell') w = i.command;
+  if (name === 'Bash' || name === 'PowerShell') w = hideCommands() ? '' : maskSecrets(String(i.command || ''));
   else if (/^(Edit|Write|MultiEdit|NotebookEdit)$/.test(name)) w = i.file_path || i.notebook_path;
   else if (name === 'Agent' || name === 'Task') w = `${i.subagent_type || ''} : ${i.description || ''}`;
   else w = i.description || i.file_path || i.pattern || i.url || i.query || i.name || i.title || i.scriptPath || '';
-  return String(w || '').replace(/[\t\r\n]+/g, ' ').slice(0, 300);
+  return String(w || '').replace(/[\t\r\n]+/g, ' ').slice(0, WHAT_MAX);
 }
 // résumé tel qu'un hook PreToolUse le note dans un fil d'activité (pour retrouver la ligne d'un appel lu dans un transcript)
 function guardWhat(name, input) {
@@ -175,9 +189,24 @@ const LIVE_MS = 15 * 60 * 1000;           // fichier modifié depuis moins longt
 function claudeRoot() {
   return process.env.CLAUDE_CONFIG_DIR ? toNative(process.env.CLAUDE_CONFIG_DIR) : path.join(os.homedir(), '.claude');
 }
-// dossier du tableau de bord (registre des projets, adresse du serveur, journal, config.json)
+// dossier du tableau de bord (registre des projets, adresse du serveur, journal, config.json) :
+// $ORCH_DASHBOARD_HOME ; sinon l'ancien dossier sous la racine Claude s'il existe déjà (reprise) ; sinon
+// %LOCALAPPDATA% (Windows), ~/Library/Application Support (macOS), $XDG_STATE_HOME ou ~/.local/state (autres)
 function stateDir() {
-  return process.env.ORCH_DASHBOARD_HOME ? toNative(process.env.ORCH_DASHBOARD_HOME) : path.join(claudeRoot(), 'orchestrator-dashboard');
+  if (process.env.ORCH_DASHBOARD_HOME) return toNative(process.env.ORCH_DASHBOARD_HOME);
+  const legacy = path.join(claudeRoot(), 'orchestrator-dashboard');
+  if (stat(legacy)) return legacy;
+  const home = os.homedir();
+  if (process.platform === 'win32') return path.join(process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local'), 'orchestrator-dashboard');
+  if (process.platform === 'darwin') return path.join(home, 'Library', 'Application Support', 'orchestrator-dashboard');
+  return path.join(process.env.XDG_STATE_HOME ? toNative(process.env.XDG_STATE_HOME) : path.join(home, '.local', 'state'), 'orchestrator-dashboard');
+}
+// journal du serveur : au-delà de maxBytes, le fichier devient <nom>.1 (remplace le précédent) ; le suivant repart à vide
+const LOG_MAX_BYTES = 1024 * 1024;
+function rotateLog(f, maxBytes = LOG_MAX_BYTES) {
+  const st = stat(f);
+  if (!st || st.size <= maxBytes) return false;
+  try { fs.renameSync(f, `${f}.1`); return true; } catch { return false; }
 }
 // réglages de l'utilisateur : <stateDir>/config.json ({ "port": 4870, "editorUrl": "vscode://file{path}:{line}" }),
 // remplacés par les variables ORCH_DASHBOARD_PORT et ORCH_DASHBOARD_EDITOR
@@ -217,9 +246,8 @@ function findTranscript(sid, dirs) {
   if (c && !c.file && Date.now() - c.at < 10 * 60 * 1000) return null;
   const projects = path.join(claudeRoot(), 'projects');
   let file = null;
+  // seuls les dossiers des projets inscrits sont cherchés (jamais tout <racine Claude>/projects)
   for (const d of dirs) { const f = path.join(projects, sanitize(d), `${sid}.jsonl`); if (stat(f)) { file = f; break; } }
-  // dossier de travail différent (worktree, nom long abrégé par Claude Code) : on cherche dans tous les projets
-  if (!file) for (const p of listDir(projects)) { const f = path.join(projects, p, `${sid}.jsonl`); if (stat(f)) { file = f; break; } }
   transcriptPath.set(sid, { file, at: Date.now() });
   return file;
 }
@@ -506,7 +534,7 @@ function itemRefs(texts, links) {
 
 module.exports = {
   T, toNative, same, inside, readText, stat, listDir, tailText, tailLines, readJson, readShConfig,
-  refreshProcs, pidAlive, classifier, BASE_TOOLS, toolWhat, guardWhat, sigOf,
-  RECENT_MS, LIVE_MS, claudeRoot, stateDir, settings, usageBand, findTranscript, transcriptInfo, readRoster, claudeAgents, attributeSubagentTools,
+  refreshProcs, pidAlive, classifier, BASE_TOOLS, toolWhat, guardWhat, sigOf, maskSecrets, hideCommands,
+  RECENT_MS, LIVE_MS, claudeRoot, stateDir, rotateLog, settings, usageBand, findTranscript, transcriptInfo, readRoster, claudeAgents, attributeSubagentTools,
   httpUrl, cleanText, plain, editorUrl, stepContext, localTarget, normStep, itemRefs,
 };

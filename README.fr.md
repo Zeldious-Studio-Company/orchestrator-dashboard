@@ -61,7 +61,7 @@ Le format complet (sessions, agents, activité, phases, quotas, tâches, traduct
 | `node server.cjs status` / `url [dossier]` / `stop` | état du serveur, adresse de la page, arrêt |
 | `node server.cjs snapshot <dossier>` | affiche l'instantané lu (pour vérifier ton fichier) |
 
-**Réglages** : `~/.claude/orchestrator-dashboard/config.json` (`{ "port": 4870, "editorUrl": "vscode://file{path}:{line}" }`), ou les variables `ORCH_DASHBOARD_PORT`, `ORCH_DASHBOARD_EDITOR` et `ORCH_DASHBOARD_HOME`.
+**Réglages** : `config.json` dans le dossier d'état (`{ "port": 4870, "editorUrl": "vscode://file{path}:{line}", "hideCommands": false }`), ou les variables `ORCH_DASHBOARD_PORT`, `ORCH_DASHBOARD_EDITOR`, `ORCH_DASHBOARD_HIDE_COMMANDS` et `ORCH_DASHBOARD_HOME`. Le dossier d'état est `%LOCALAPPDATA%\orchestrator-dashboard` sous Windows, `~/Library/Application Support/orchestrator-dashboard` sous macOS et `$XDG_STATE_HOME/orchestrator-dashboard` (ou `~/.local/state/...`) ailleurs ; un dossier `~/.claude/orchestrator-dashboard` existant reste utilisé. `server.log` passe en `server.log.1` au-delà de 1 Mo.
 
 ## Sécurité
 

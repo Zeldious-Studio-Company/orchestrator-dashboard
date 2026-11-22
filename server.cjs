@@ -387,6 +387,7 @@ async function main() {
     if (free == null) { console.error(`ERREUR: aucun port libre entre ${port} et ${port + 19} (DASHBOARD_PORT)`); process.exit(1); }
     port = free;
     fs.mkdirSync(STATE_DIR, { recursive: true });
+    L.rotateLog(LOG); // server.log dépasse 1 Mo : il devient server.log.1
     const log = fs.openSync(LOG, 'a');
     const child = spawn(process.execPath, [__filename, 'serve', String(port)], { detached: true, stdio: ['ignore', log, log], windowsHide: true });
     child.unref();

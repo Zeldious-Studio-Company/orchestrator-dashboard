@@ -15,7 +15,7 @@ node server.cjs start /path/to/project   # registers the project and starts the 
 
 One server serves every registered project, picked in the page (project selector). Other commands: `add <folder> [adapter] [file]`, `remove <folder>`, `list`, `adapters`, `status`, `url [folder]`, `stop`, `snapshot <folder>` (prints the snapshot it reads, to check a file).
 
-**Settings**: `~/.claude/orchestrator-dashboard/config.json` (`{ "port": 4870, "editorUrl": "vscode://file{path}:{line}" }`) or the `ORCH_DASHBOARD_PORT` and `ORCH_DASHBOARD_EDITOR` variables. Move the folder itself with `ORCH_DASHBOARD_HOME`. It also holds the project registry (`projects.json`), the server address and its log.
+**Settings**: `config.json` in the state folder (`{ "port": 4870, "editorUrl": "vscode://file{path}:{line}", "hideCommands": false }`) or the `ORCH_DASHBOARD_PORT`, `ORCH_DASHBOARD_EDITOR` and `ORCH_DASHBOARD_HIDE_COMMANDS` variables. The state folder is `%LOCALAPPDATA%\orchestrator-dashboard` on Windows, `~/Library/Application Support/orchestrator-dashboard` on macOS and `$XDG_STATE_HOME/orchestrator-dashboard` (or `~/.local/state/...`) elsewhere; an existing `~/.claude/orchestrator-dashboard` is still used. Move the folder itself with `ORCH_DASHBOARD_HOME`. It also holds the project registry (`projects.json`), the server address and its log.
 
 ## Texts and languages
 

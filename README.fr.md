@@ -11,6 +11,24 @@ Un tableau de bord web local, en temps réel, pour les **orchestrateurs d'agents
 - **N'importe quel orchestrateur** : un fichier JSON à écrire, ou un petit adaptateur. Tous les langages et frameworks conviennent.
 - **Sans dépendance** (Node.js 18+), **en lecture seule**, servi uniquement sur `127.0.0.1`.
 
+## Installation (sans git ni compte GitHub)
+
+Une commande télécharge la dernière version en HTTPS (Node.js 18+ requis) et ajoute une commande `orchestrator-dashboard`, qui remplace `node server.cjs` ci-dessous.
+
+Windows (PowerShell) :
+
+```powershell
+irm https://raw.githubusercontent.com/Zeldious-Studio-Company/orchestrator-dashboard/main/install.ps1 | iex
+```
+
+macOS / Linux :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Zeldious-Studio-Company/orchestrator-dashboard/main/install.sh | sh
+```
+
+Relance la même commande pour mettre à jour. `ORCH_DASHBOARD_REF` (branche ou tag, ex. `v1.0.0`) et `ORCH_DASHBOARD_DIR` (dossier d'installation) changent les valeurs par défaut.
+
 ## Démarrage rapide
 
 ```bash

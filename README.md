@@ -11,6 +11,24 @@ A live, local web dashboard for **AI agent orchestrators**. It shows what your o
 - **Any orchestrator**: write one JSON file, or add a small adapter. Works with any language or framework.
 - **No dependencies** (Node.js 18+), **read-only**, served on `127.0.0.1` only.
 
+## Install (no git, no GitHub account)
+
+One command downloads the latest version over HTTPS (Node.js 18+ required) and adds an `orchestrator-dashboard` command, which replaces `node server.cjs` below.
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/Zeldious-Studio-Company/orchestrator-dashboard/main/install.ps1 | iex
+```
+
+macOS / Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Zeldious-Studio-Company/orchestrator-dashboard/main/install.sh | sh
+```
+
+Run the same command again to update. Set `ORCH_DASHBOARD_REF` (branch or tag, e.g. `v1.0.0`) or `ORCH_DASHBOARD_DIR` (install folder) to change the defaults.
+
 ## Quick start
 
 ```bash

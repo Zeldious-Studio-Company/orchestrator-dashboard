@@ -13,21 +13,29 @@ Un tableau de bord web local, en temps réel, pour les **orchestrateurs d'agents
 
 ## Installation (sans git ni compte GitHub)
 
-Une commande télécharge la dernière version en HTTPS (Node.js 18+ requis) et ajoute une commande `orchestrator-dashboard`, qui remplace `node server.cjs` ci-dessous.
+L'installeur télécharge une version figée en HTTPS (Node.js 18+ requis) et ajoute une commande `orchestrator-dashboard`, qui remplace `node server.cjs` ci-dessous. Ne le fais pas passer dans un shell : télécharge le script, vérifie-le, lis-le, puis exécute-le.
 
 Windows (PowerShell) :
 
 ```powershell
-irm https://raw.githubusercontent.com/Zeldious-Studio-Company/orchestrator-dashboard/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Zeldious-Studio-Company/orchestrator-dashboard/v1.0.0/install.ps1 -OutFile install.ps1
+Get-Content install.ps1        # lire le script
+.\install.ps1
 ```
 
 macOS / Linux :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Zeldious-Studio-Company/orchestrator-dashboard/main/install.sh | sh
+curl -fsSL -o install.sh https://raw.githubusercontent.com/Zeldious-Studio-Company/orchestrator-dashboard/v1.0.0/install.sh
+less install.sh                # lire le script
+sh install.sh
 ```
 
-Relance la même commande pour mettre à jour. `ORCH_DASHBOARD_REF` (branche ou tag, ex. `v1.0.0`) et `ORCH_DASHBOARD_DIR` (dossier d'installation) changent les valeurs par défaut.
+Si une somme SHA256 est publiée pour la version, passe-la pour vérifier l'archive téléchargée avant toute installation : `ORCH_DASHBOARD_SHA256=<somme>` (PowerShell : `$env:ORCH_DASHBOARD_SHA256 = '<somme>'`). L'installeur s'arrête à la moindre différence.
+
+Options : `ORCH_DASHBOARD_REF` (tag ou branche, par défaut `v1.0.0`), `ORCH_DASHBOARD_DIR` (dossier d'installation). Windows uniquement : le dossier de la commande n'est ajouté au PATH utilisateur que si tu définis `ORCH_DASHBOARD_ADD_PATH=1`. Sous macOS / Linux, l'installeur ne modifie jamais ton profil shell.
+
+L'installeur ne remplace un dossier existant que s'il contient `server.cjs` et un `package.json` nommé `orchestrator-dashboard` ; sinon il s'arrête sans rien modifier. Pour mettre à jour, relance l'installeur avec un `ORCH_DASHBOARD_REF` plus récent.
 
 ## Démarrage rapide
 

@@ -13,21 +13,29 @@ A live, local web dashboard for **AI agent orchestrators**. It shows what your o
 
 ## Install (no git, no GitHub account)
 
-One command downloads the latest version over HTTPS (Node.js 18+ required) and adds an `orchestrator-dashboard` command, which replaces `node server.cjs` below.
+The installer downloads a fixed release over HTTPS (Node.js 18+ required) and adds an `orchestrator-dashboard` command, which replaces `node server.cjs` below. Do not pipe it into a shell: download the script, check it, read it, then run it.
 
 Windows (PowerShell):
 
 ```powershell
-irm https://raw.githubusercontent.com/Zeldious-Studio-Company/orchestrator-dashboard/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Zeldious-Studio-Company/orchestrator-dashboard/v1.0.0/install.ps1 -OutFile install.ps1
+Get-Content install.ps1        # read it
+.\install.ps1
 ```
 
 macOS / Linux:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Zeldious-Studio-Company/orchestrator-dashboard/main/install.sh | sh
+curl -fsSL -o install.sh https://raw.githubusercontent.com/Zeldious-Studio-Company/orchestrator-dashboard/v1.0.0/install.sh
+less install.sh                # read it
+sh install.sh
 ```
 
-Run the same command again to update. Set `ORCH_DASHBOARD_REF` (branch or tag, e.g. `v1.0.0`) or `ORCH_DASHBOARD_DIR` (install folder) to change the defaults.
+If a SHA256 checksum is published for the release, pass it to verify the downloaded archive before anything is installed: `ORCH_DASHBOARD_SHA256=<checksum>` (PowerShell: `$env:ORCH_DASHBOARD_SHA256 = '<checksum>'`). The installer then stops on any mismatch.
+
+Options: `ORCH_DASHBOARD_REF` (tag or branch, default `v1.0.0`), `ORCH_DASHBOARD_DIR` (install folder). Windows only: the launcher folder is added to your user PATH only if you set `ORCH_DASHBOARD_ADD_PATH=1`. On macOS / Linux, the installer never edits your shell profile.
+
+The installer only replaces an existing folder if it contains `server.cjs` and a `package.json` named `orchestrator-dashboard`; otherwise it stops and changes nothing. To update, run the installer again with the newer `ORCH_DASHBOARD_REF`.
 
 ## Quick start
 

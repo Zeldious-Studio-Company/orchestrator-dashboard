@@ -39,6 +39,11 @@ const REG = path.join(STATE_DIR, 'projects.json');
 const INFO = path.join(STATE_DIR, 'server.json');
 const LOG = path.join(STATE_DIR, 'server.log');
 const APP = 'orchestrator-dashboard';
+// jeton d'accès (192 bits) : sans lui, n'importe quel compte ou programme du poste lirait la page (127.0.0.1 est commun à tous les comptes)
+const COOKIE = 'od_k';
+const tokenOk = (given, token) => { const a = Buffer.from(String(given || '')), b = Buffer.from(String(token)); return a.length === b.length && crypto.timingSafeEqual(a, b); };
+const cookieOf = (req) => { for (const c of String(req.headers.cookie || '').split(';')) { const i = c.indexOf('='); if (i > 0 && c.slice(0, i).trim() === COOKIE) return c.slice(i + 1).trim(); } return ''; };
+const newToken = () => crypto.randomBytes(24).toString('hex');
 
 // ---------- adaptateurs (seulement ceux de ce dossier : jamais de code chargé depuis un projet) ----------
 const ADAPTERS = [];
@@ -167,7 +172,12 @@ function openLocal(req, res, allowedHosts, targetsOf) {
 
 // ---------- serveur ----------
 function serve(port) {
+  // « start » transmet le jeton par ORCH_DASHBOARD_TOKEN (noté dans server.json) ; « serve » seul en génère un et l'affiche
+  const envTok = process.env.ORCH_DASHBOARD_TOKEN;
+  const TOKEN = /^[0-9a-f]{48}$/.test(envTok || '') ? envTok : newToken();
+  delete process.env.ORCH_DASHBOARD_TOKEN;
   const page = path.join(HERE, 'index.html');
+  const appJs = path.join(HERE, 'app.js');
   const live = new Map(); // id de projet -> { clients, last, current, targets }
   const L_ = (id) => { if (!live.has(id)) live.set(id, { clients: new Set(), last: '', current: null, targets: new Map() }); return live.get(id); };
   const summaries = new Map(); // id -> résumé (sélecteur de projet)
@@ -227,16 +237,28 @@ function serve(port) {
     if (!allowedHosts.has(String(req.headers.host || '').toLowerCase())) { res.writeHead(403); res.end('Forbidden'); return; }
     const u = new URL(req.url, 'http://x');
     const url = u.pathname;
+    // identité du serveur (sans secret : sert à « start » et « status » pour reconnaître le serveur)
+    if (req.method === 'GET' && url === '/api/whoami') { res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ app: APP, schema: SCHEMA, pid: process.pid })); return; }
+    // première visite avec le jeton dans l'adresse : cookie HttpOnly puis redirection vers la page sans le jeton
+    const k = u.searchParams.get('k');
+    if (req.method === 'GET' && url === '/' && k !== null) {
+      if (!tokenOk(k, TOKEN)) { res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }); res.end('Acces refuse : jeton invalide.'); return; }
+      const p = /^[0-9a-f]{10}$/.test(u.searchParams.get('p') || '') ? `?p=${u.searchParams.get('p')}` : '';
+      res.writeHead(303, { 'Set-Cookie': `${COOKIE}=${TOKEN}; HttpOnly; SameSite=Strict; Path=/`, Location: `/${p}`, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' });
+      res.end(); return;
+    }
+    if (!tokenOk(cookieOf(req), TOKEN)) { res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }); res.end('Acces refuse : ouvrir l adresse donnee par la commande start (elle porte le jeton).'); return; }
     if (req.method === 'POST' && url === '/api/open') { openLocal(req, res, allowedHosts, (id) => (live.get(id) || {}).targets); return; }
     if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
-    const sec = { 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store' };
+    const sec = { 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'no-referrer' };
     const sendJson = (o) => { res.writeHead(200, { ...sec, 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(o)); };
     if (url === '/' || url === '/index.html') {
       const html = L.readText(page);
-      res.writeHead(200, { ...sec, 'Content-Type': 'text/html; charset=utf-8', 'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'" });
+      res.writeHead(200, { ...sec, 'Content-Type': 'text/html; charset=utf-8', 'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" });
       res.end(html || 'index.html missing');
-    } else if (url === '/api/whoami') {
-      sendJson({ app: APP, schema: SCHEMA, pid: process.pid });
+    } else if (url === '/app.js') {
+      res.writeHead(200, { ...sec, 'Content-Type': 'text/javascript; charset=utf-8' });
+      res.end(L.readText(appJs) || '');
     } else if (url === '/api/i18n') {
       sendJson(I18N);
     } else if (url === '/api/projects') {
@@ -248,6 +270,7 @@ function serve(port) {
       if (!p.current) { p.targets = new Map(); p.current = snapshotOf(e, p.targets); }
       sendJson(p.current);
     } else if (url === '/events') {
+      if (allClients.size >= 20) { res.writeHead(503, sec); res.end('Trop de flux ouverts.'); return; } // plafond : 20 flux /events
       res.writeHead(200, { ...sec, 'Content-Type': 'text/event-stream; charset=utf-8', Connection: 'keep-alive' });
       res.write('retry: 2000\n\n');
       allClients.add(res);
@@ -265,7 +288,7 @@ function serve(port) {
   });
   srv.on('error', (e) => { console.error(`ERREUR: ${e.code === 'EADDRINUSE' ? `port ${port} déjà utilisé (DASHBOARD_PORT)` : e.message}`); process.exit(1); });
   srv.listen(port, '127.0.0.1', () => {
-    console.log(`TABLEAU DE BORD: http://127.0.0.1:${port}/ (${registry().length} projet(s), adaptateurs : ${ADAPTERS.map((a) => a.id).join(', ')})`);
+    console.log(`TABLEAU DE BORD: http://127.0.0.1:${port}/${envTok === TOKEN ? '' : `?k=${TOKEN}`} (${registry().length} projet(s), adaptateurs : ${ADAPTERS.map((a) => a.id).join(', ')})`);
     setInterval(tick, 1000);
     setInterval(refreshSummaries, 10000);
     setInterval(() => { for (const res of allClients) res.write(': ping\n\n'); }, 15000);
@@ -300,7 +323,7 @@ function portFree(port) {
     s.listen(port, '127.0.0.1', () => s.close(() => resolve(true)));
   });
 }
-const pageUrl = (base, e) => (e ? `${base}?p=${e.id}` : base);
+const pageUrl = (base, e, k) => { const q = [k ? `k=${k}` : '', e ? `p=${e.id}` : ''].filter(Boolean).join('&'); return q ? `${base}?${q}` : base; };
 const defaultPort = () => L.settings().port;
 
 async function main() {
@@ -359,7 +382,7 @@ async function main() {
       if (a && typeof a.resolve === 'function') dir = a.resolve(dir) || dir;
       e = registry().find((x) => x.id === projectId(dir)) || null;
     }
-    console.log(pageUrl(j.url, e));
+    console.log(pageUrl(j.url, e, j.token));
     return;
   }
   if (cmd === 'stop') {
@@ -380,7 +403,7 @@ async function main() {
       entry = r.entry;
     }
     const j = await running();
-    if (j) { console.log(`DÉJÀ EN COURS: ${pageUrl(j.url, entry)}`); return; }
+    if (j) { console.log(`DÉJÀ EN COURS: ${pageUrl(j.url, entry, j.token)}`); return; }
     // port déjà pris (autre programme, ancienne version du tableau de bord) : on prend le suivant libre
     let free = null;
     for (let p = port; p < port + 20 && free == null; p++) if (await portFree(p)) free = p;
@@ -388,13 +411,14 @@ async function main() {
     port = free;
     fs.mkdirSync(STATE_DIR, { recursive: true });
     const log = fs.openSync(LOG, 'a');
-    const child = spawn(process.execPath, [__filename, 'serve', String(port)], { detached: true, stdio: ['ignore', log, log], windowsHide: true });
+    const token = newToken();
+    const child = spawn(process.execPath, [__filename, 'serve', String(port)], { detached: true, stdio: ['ignore', log, log], windowsHide: true, env: { ...process.env, ORCH_DASHBOARD_TOKEN: token } });
     child.unref();
     const url = `http://127.0.0.1:${port}/`;
-    fs.writeFileSync(INFO, JSON.stringify({ pid: child.pid, port, url, started: new Date().toISOString() }) + '\n');
+    fs.writeFileSync(INFO, JSON.stringify({ pid: child.pid, port, url, token, started: new Date().toISOString() }) + '\n');
     for (let i = 0; i < 25; i++) {
       const w = await who(port);
-      if (w && w.app === APP && w.pid === child.pid) { console.log(`LANCÉ: ${pageUrl(url, entry)}`); return; }
+      if (w && w.app === APP && w.pid === child.pid) { console.log(`LANCÉ: ${pageUrl(url, entry, token)}`); return; }
       await new Promise((r) => setTimeout(r, 200));
     }
     console.error(`ERREUR: le serveur ne répond pas sur ${url} (voir ${LOG})`);

@@ -7,7 +7,7 @@
   "scripts": {
     "demo": "node server.cjs start examples",
     "stop": "node server.cjs stop",
-    "test": "node --test test/*.test.cjs"
+    "test": "node scripts/test.cjs"
   },
   "engines": { "node": ">=18" },
   "keywords": ["ai-agents", "orchestrator", "dashboard", "claude-code", "multi-agent", "observability"]

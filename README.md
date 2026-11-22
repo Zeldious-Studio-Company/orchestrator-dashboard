@@ -11,9 +11,13 @@ A live, local web dashboard for **AI agent orchestrators**. It shows what your o
 - **Any orchestrator**: write one JSON file, or add a small adapter. Works with any language or framework.
 - **No dependencies** (Node.js 18+), **read-only**, served on `127.0.0.1` only.
 
+## Requirements
+
+Node.js 18+ is required. **Node.js 22 or 24 LTS is recommended**, since Node.js 18 and 20 are end-of-life.
+
 ## Install (no git, no GitHub account)
 
-One command downloads the latest version over HTTPS (Node.js 18+ required; **Node.js 22 or 24 LTS recommended**, since Node.js 18 and 20 are end-of-life) and adds an `orchestrator-dashboard` command, which replaces `node server.cjs` below.
+One command downloads the latest version over HTTPS (Node.js 18+ required) and adds an `orchestrator-dashboard` command, which replaces `node server.cjs` below.
 
 Windows (PowerShell):
 

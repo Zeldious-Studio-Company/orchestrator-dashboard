@@ -1,5 +1,5 @@
 'use strict';
-// Tests de base (issue #10) : aucune dépendance, lancés par `npm test` (node --test test/).
+// Tests de base (issue #10) : aucune dépendance, lancés par `npm test` (scripts/test.cjs).
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
@@ -7,9 +7,9 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 
-test('package.json déclare le script "test" (node --test, sans dépendance)', () => {
+test('package.json déclare le script "test" (scripts/test.cjs, sans dépendance)', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-  assert.match(pkg.scripts.test, /^node --test test\//);
+  assert.strictEqual(pkg.scripts.test, 'node scripts/test.cjs');
   assert.deepStrictEqual(pkg.dependencies || {}, {}, 'le projet ne doit avoir aucune dépendance');
 });
 

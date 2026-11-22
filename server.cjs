@@ -172,6 +172,9 @@ function openLocal(req, res, allowedHosts, targetsOf) {
 
 // ---------- serveur ----------
 function serve(port) {
+  // le serveur ne doit pas dépendre du dossier courant : on se place dans le dossier de l'outil.
+  // Les chemins utilisés ensuite (STATE_DIR, REG, INFO, LOG) sont déjà absolus, résolus au chargement du module.
+  process.chdir(HERE);
   const page = path.join(HERE, 'index.html');
   const live = new Map(); // id de projet -> { clients, last, current, targets }
   const L_ = (id) => { if (!live.has(id)) live.set(id, { clients: new Set(), last: '', current: null, targets: new Map() }); return live.get(id); };

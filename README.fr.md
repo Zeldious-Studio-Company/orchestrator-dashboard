@@ -13,7 +13,7 @@ Un tableau de bord web local, en temps réel, pour les **orchestrateurs d'agents
 
 ## Installation (sans git ni compte GitHub)
 
-Une commande télécharge la dernière version en HTTPS (Node.js 18+ requis) et ajoute une commande `orchestrator-dashboard`, qui remplace `node server.cjs` ci-dessous.
+Une commande télécharge la dernière version en HTTPS (Node.js 18+ requis ; **Node.js 22 ou 24 LTS recommandé**, car Node.js 18 et 20 sont en fin de vie) et ajoute une commande `orchestrator-dashboard`, qui remplace `node server.cjs` ci-dessous.
 
 Windows (PowerShell) :
 

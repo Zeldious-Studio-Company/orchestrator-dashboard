@@ -13,7 +13,7 @@ A live, local web dashboard for **AI agent orchestrators**. It shows what your o
 
 ## Install (no git, no GitHub account)
 
-One command downloads the latest version over HTTPS (Node.js 18+ required) and adds an `orchestrator-dashboard` command, which replaces `node server.cjs` below.
+One command downloads the latest version over HTTPS (Node.js 18+ required; **Node.js 22 or 24 LTS recommended**, since Node.js 18 and 20 are end-of-life) and adds an `orchestrator-dashboard` command, which replaces `node server.cjs` below.
 
 Windows (PowerShell):
 

@@ -86,13 +86,13 @@ function snapshot(dir, env) {
     if (!a || typeof a !== 'object') continue;
     const type = str(a.name ?? a.type, 60); if (!type) continue;
     const owner = a.session ? id(a.session) : 'human';
-    const g = bySess.get(owner) || { session: owner, name: null, model: '', alive: false, mtime: 0, agents: [], agentTypes: {}, agentCount: 0 };
+    const g = bySess.get(owner) || { session: owner, name: null, model: '', alive: false, mtime: 0, agents: [], agentTypes: Object.create(null), agentCount: 0 };
     const status = AGENT_ST.includes(a.status) ? a.status : 'running';
     const mtime = time(a.updated) || fileMs; // sans date : celle du fichier (stable d'une lecture à l'autre)
     const tl = arr(a.tools, 15).filter((u) => u && typeof u === 'object').map((u) => { const tool = str(u.tool, 60) || 'tool', raw = str(u.what, 4000); return { t: time(u.ts) || mtime, tool, what: L.shown(tool, raw).slice(0, 300), cat: catOf(u.category, tool, raw.slice(0, 300)), refused: bool(u.blocked) }; });
     const x = { id: id(a.id) || `${owner}:${type}:${g.agents.length}`, type, description: str(a.description, 300), alias: '', model: str(a.model, 60), status, mtime, workflow: null, tools: tl, lastRefusal: tl.filter((u) => u.refused).pop() || null };
     g.agents.push(x); g.agentCount++;
-    const ty = g.agentTypes[type] || (g.agentTypes[type] = { live: 0, total: 0, last: 0, models: {} });
+    const ty = g.agentTypes[type] || (g.agentTypes[type] = { live: 0, total: 0, last: 0, models: Object.create(null) });
     ty.total++; if (status === 'running') ty.live++; ty.last = Math.max(ty.last, mtime); if (x.model) ty.models[x.model] = (ty.models[x.model] || 0) + 1;
     bySess.set(owner, g);
   }

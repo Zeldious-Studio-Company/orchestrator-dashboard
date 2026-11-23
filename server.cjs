@@ -240,10 +240,11 @@ function serve(port) {
   }
 
   const allowedHosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
-  const srv = http.createServer((req, res) => {
+  const handleRequest = (req, res) => {
     // protège contre le DNS rebinding : seule l'adresse locale est servie
     if (!allowedHosts.has(String(req.headers.host || '').toLowerCase())) { res.writeHead(403); res.end('Forbidden'); return; }
-    const u = new URL(req.url, 'http://x');
+    let u;
+    try { u = new URL(req.url, 'http://x'); } catch { res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }); res.end('Requête invalide.'); return; }
     const url = u.pathname;
     // identité du serveur (sans secret : sert à « start » et « status » pour reconnaître le serveur)
     if (req.method === 'GET' && url === '/api/whoami') { res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ app: APP, schema: SCHEMA, pid: process.pid })); return; }
@@ -293,6 +294,14 @@ function serve(port) {
       }
       req.on('close', () => allClients.delete(res));
     } else { res.writeHead(404, sec); res.end('Not found'); }
+  };
+  // filet de sécurité : une erreur imprévue dans un gestionnaire ne doit jamais arrêter le processus (détail seulement dans le journal)
+  const srv = http.createServer((req, res) => {
+    try { handleRequest(req, res); } catch (e) {
+      console.error(`ERREUR requête : ${e && e.stack || e}`);
+      if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end('Erreur interne.');
+    }
   });
   srv.on('error', (e) => { console.error(`ERREUR: ${e.code === 'EADDRINUSE' ? `port ${port} déjà utilisé (DASHBOARD_PORT)` : e.message}`); process.exit(1); });
   srv.listen(port, '127.0.0.1', () => {

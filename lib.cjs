@@ -83,6 +83,10 @@ function readShConfig(file, into = {}) {
 }
 
 // ---------- processus vivants (une seule commande tasklist, en cache) ----------
+// exécutables Windows par chemin absolu (sinon Windows peut lancer un programme du dossier courant)
+const WIN_SYSROOT = process.env.SystemRoot || 'C:\\Windows';
+const WIN_TASKLIST = path.join(WIN_SYSROOT, 'System32', 'tasklist.exe');
+const WIN_EXPLORER = path.join(WIN_SYSROOT, 'explorer.exe');
 let procCache = { at: 0, pids: null };
 let procPending = null;
 function refreshProcs() {
@@ -90,7 +94,7 @@ function refreshProcs() {
   if (procPending) return procPending;
   if (procCache.pids && Date.now() - procCache.at < 5000) return Promise.resolve(); // au plus une fois toutes les 5 s
   procPending = new Promise((resolve) => {
-    execFile('tasklist', ['/FO', 'CSV', '/NH'], { windowsHide: true, maxBuffer: 8 * 1024 * 1024 }, (err, out) => {
+    execFile(WIN_TASKLIST, ['/FO', 'CSV', '/NH'], { windowsHide: true, maxBuffer: 8 * 1024 * 1024 }, (err, out) => {
       if (!err) {
         const pids = new Map();
         for (const line of out.split(/\r?\n/)) {
@@ -343,9 +347,9 @@ function subAgents(sessDir, now, parentStopped, classify) {
     scan(wd, w, wfJournal(path.join(wd, 'journal.jsonl')));
   }
   // totaux par type d'agent sur les 6 dernières heures, avant la coupe (les agents en cours passent en premier)
-  const types = {};
+  const types = Object.create(null); // sans prototype : une clé « __proto__ » ou « constructor » ne touche pas Object.prototype
   for (const a of out) {
-    const t = types[a.type] || (types[a.type] = { live: 0, total: 0, last: 0, models: {} });
+    const t = types[a.type] || (types[a.type] = { live: 0, total: 0, last: 0, models: Object.create(null) });
     t.total++; if (a.status === 'running') t.live++;
     t.last = Math.max(t.last, a.mtime);
     if (a.model) t.models[a.model] = (t.models[a.model] || 0) + 1;
@@ -457,7 +461,7 @@ function localTarget(p, line, ctx) {
   if (!st) return null;
   const dir = st.isDirectory();
   const ref = crypto.createHash('sha1').update(`${real}\n${ln || ''}`).digest('hex').slice(0, 16);
-  ctx.targets.set(ref, { path: real, line: ln, dir });
+  ctx.targets.set(ref, { path: real, line: ln, dir, roots: ctx.roots }); // roots : revérifiés au clic (openLocal)
   const root = ctx.roots.find((r) => inside(real, r));
   const rel = path.relative(root, real) || path.basename(real);
   const label = `${same(root, ctx.claude) ? '~/.claude/' : ''}${rel.replace(/\\/g, '/')}${dir ? '/' : ''}${ln ? `:${ln}` : ''}`;
@@ -506,7 +510,7 @@ function itemRefs(texts, links) {
 
 module.exports = {
   T, toNative, same, inside, readText, stat, listDir, tailText, tailLines, readJson, readShConfig,
-  refreshProcs, pidAlive, classifier, BASE_TOOLS, toolWhat, guardWhat, sigOf,
+  WIN_TASKLIST, WIN_EXPLORER, refreshProcs, pidAlive, classifier, BASE_TOOLS, toolWhat, guardWhat, sigOf,
   RECENT_MS, LIVE_MS, claudeRoot, stateDir, settings, usageBand, findTranscript, transcriptInfo, readRoster, claudeAgents, attributeSubagentTools,
   httpUrl, cleanText, plain, editorUrl, stepContext, localTarget, normStep, itemRefs,
 };

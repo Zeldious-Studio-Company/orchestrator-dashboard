@@ -183,6 +183,25 @@ function claudeRoot() {
 function stateDir() {
   return process.env.ORCH_DASHBOARD_HOME ? toNative(process.env.ORCH_DASHBOARD_HOME) : path.join(claudeRoot(), 'orchestrator-dashboard');
 }
+// crée le dossier d'état en 0o700 (il contient le jeton d'accès, issue #20). Le dossier par défaut est resserré
+// même s'il existe déjà ; un ORCH_DASHBOARD_HOME choisi par l'utilisateur n'est créé qu'en 0o700 s'il n'existe pas
+// encore (on ne modifie pas les droits d'un dossier existant que l'utilisateur a choisi). Sous Windows, chmod ne fait rien.
+function ensureStateDir() {
+  const dir = stateDir();
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  // chmod est appelé aussi sous Windows : il n'y fait que lever l'attribut lecture seule (sans effet ici), et le test
+  // portable peut ainsi vérifier le resserrement sur toutes les plateformes
+  if (!process.env.ORCH_DASHBOARD_HOME) fs.chmodSync(dir, 0o700);
+  return dir;
+}
+// écrit un fichier qui contient un secret : il est créé en 0o600 dès le départ (aucune fenêtre où il serait lisible),
+// puis renommé sur la cible, ce qui remplace aussi un ancien fichier trop ouvert
+function writeSecretFile(file, text) {
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.rmSync(tmp, { force: true });
+  fs.writeFileSync(tmp, text, { mode: 0o600 });
+  fs.renameSync(tmp, file);
+}
 // réglages de l'utilisateur : <stateDir>/config.json ({ "port": 4870, "editorUrl": "vscode://file{path}:{line}" }),
 // remplacés par les variables ORCH_DASHBOARD_PORT et ORCH_DASHBOARD_EDITOR
 function settings() {
@@ -511,6 +530,6 @@ function itemRefs(texts, links) {
 module.exports = {
   T, toNative, same, inside, readText, stat, listDir, tailText, tailLines, readJson, readShConfig,
   WIN_TASKLIST, WIN_EXPLORER, refreshProcs, pidAlive, classifier, BASE_TOOLS, toolWhat, guardWhat, sigOf,
-  RECENT_MS, LIVE_MS, claudeRoot, stateDir, settings, usageBand, findTranscript, transcriptInfo, readRoster, claudeAgents, attributeSubagentTools,
+  RECENT_MS, LIVE_MS, claudeRoot, stateDir, ensureStateDir, writeSecretFile, settings, usageBand, findTranscript, transcriptInfo, readRoster, claudeAgents, attributeSubagentTools,
   httpUrl, cleanText, plain, editorUrl, stepContext, localTarget, normStep, itemRefs,
 };

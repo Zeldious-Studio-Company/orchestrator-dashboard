@@ -90,7 +90,7 @@ function registry() {
   return list;
 }
 function saveRegistry(list) {
-  fs.mkdirSync(STATE_DIR, { recursive: true });
+  L.ensureStateDir();
   const tmp = `${REG}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify({ projects: list.map(({ id, ...p }) => p) }, null, 2) + '\n');
   fs.renameSync(tmp, REG);
@@ -417,13 +417,13 @@ async function main() {
     for (let p = port; p < port + 20 && free == null; p++) if (await portFree(p)) free = p;
     if (free == null) { console.error(`ERREUR: aucun port libre entre ${port} et ${port + 19} (DASHBOARD_PORT)`); process.exit(1); }
     port = free;
-    fs.mkdirSync(STATE_DIR, { recursive: true });
+    L.ensureStateDir();
     const log = fs.openSync(LOG, 'a');
     const token = newToken();
     const child = spawn(process.execPath, [__filename, 'serve', String(port)], { detached: true, stdio: ['ignore', log, log], windowsHide: true, cwd: HERE, env: { ...process.env, ORCH_DASHBOARD_TOKEN: token } });
     child.unref();
     const url = `http://127.0.0.1:${port}/`;
-    fs.writeFileSync(INFO, JSON.stringify({ pid: child.pid, port, url, token, started: new Date().toISOString() }) + '\n');
+    L.writeSecretFile(INFO, JSON.stringify({ pid: child.pid, port, url, token, started: new Date().toISOString() }) + '\n');
     for (let i = 0; i < 25; i++) {
       const w = await who(port);
       if (w && w.app === APP && w.pid === child.pid) { console.log(`LANCÉ: ${pageUrl(url, entry, token)}`); return; }

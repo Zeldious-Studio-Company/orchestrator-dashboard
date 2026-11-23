@@ -148,10 +148,15 @@ function openLocal(req, res, allowedHosts, targetsOf) {
     try { const b = JSON.parse(body); ref = String(b.ref || ''); project = String(b.project || ''); } catch { return json(400, { error: 'request' }); }
     const targets = targetsOf(project);
     const t = targets && targets.get(ref);
-    if (!t || !L.stat(t.path)) return json(404, { error: 'unknown' });
+    if (!t) return json(404, { error: 'unknown' });
+    // au clic : même chemin réel, même nature (dossier ou fichier) et toujours dans une racine autorisée qu'à l'instantané
+    let real = null;
+    try { real = fs.realpathSync(t.path); } catch {}
+    const st = real && L.stat(real);
+    if (!st || real !== t.path || st.isDirectory() !== !!t.dir || !(t.roots || []).some((r) => L.inside(real, r))) return json(404, { error: 'unknown' });
     let cmd, args, opts = { windowsHide: false };
     if (process.platform === 'win32') {
-      cmd = 'explorer.exe';
+      cmd = L.WIN_EXPLORER;
       const p = t.path.replace(/\//g, '\\');
       args = t.dir ? [`"${p}"`] : [`/select,"${p}"`]; // un chemin Windows ne contient jamais de guillemet
       opts.windowsVerbatimArguments = true;
@@ -167,6 +172,9 @@ function openLocal(req, res, allowedHosts, targetsOf) {
 
 // ---------- serveur ----------
 function serve(port) {
+  // le serveur ne doit pas dépendre du dossier courant : on se place dans le dossier de l'outil.
+  // Les chemins utilisés ensuite (STATE_DIR, REG, INFO, LOG) sont déjà absolus, résolus au chargement du module.
+  process.chdir(HERE);
   const page = path.join(HERE, 'index.html');
   const live = new Map(); // id de projet -> { clients, last, current, targets }
   const L_ = (id) => { if (!live.has(id)) live.set(id, { clients: new Set(), last: '', current: null, targets: new Map() }); return live.get(id); };
@@ -388,7 +396,7 @@ async function main() {
     port = free;
     fs.mkdirSync(STATE_DIR, { recursive: true });
     const log = fs.openSync(LOG, 'a');
-    const child = spawn(process.execPath, [__filename, 'serve', String(port)], { detached: true, stdio: ['ignore', log, log], windowsHide: true });
+    const child = spawn(process.execPath, [__filename, 'serve', String(port)], { detached: true, stdio: ['ignore', log, log], windowsHide: true, cwd: HERE });
     child.unref();
     const url = `http://127.0.0.1:${port}/`;
     fs.writeFileSync(INFO, JSON.stringify({ pid: child.pid, port, url, started: new Date().toISOString() }) + '\n');

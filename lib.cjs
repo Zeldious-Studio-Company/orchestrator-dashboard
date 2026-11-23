@@ -185,7 +185,9 @@ function stateDir() {
 function ensureStateDir() {
   const dir = stateDir();
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-  if (!process.env.ORCH_DASHBOARD_HOME && process.platform !== 'win32') fs.chmodSync(dir, 0o700);
+  // chmod est appelé aussi sous Windows : il n'y fait que lever l'attribut lecture seule (sans effet ici), et le test
+  // portable peut ainsi vérifier le resserrement sur toutes les plateformes
+  if (!process.env.ORCH_DASHBOARD_HOME) fs.chmodSync(dir, 0o700);
   return dir;
 }
 // écrit un fichier qui contient un secret : il est créé en 0o600 dès le départ (aucune fenêtre où il serait lisible),

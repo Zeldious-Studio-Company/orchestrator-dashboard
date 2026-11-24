@@ -73,9 +73,11 @@ function snapshot(dir, env) {
 
   const activity = arr(j.activity, MAX.activity).filter((e) => e && typeof e === 'object').map((e) => {
     const t = time(e.ts ?? e.time);
-    const tool = str(e.tool, 60) || 'tool', what = str(e.what, 300);
+    const tool = str(e.tool, 60) || 'tool', raw = str(e.what, 4000);
+    const cat = catOf(e.category ?? e.cat, tool, raw.slice(0, 300)); // catégorie sur le texte brut, avant masquage
+    const what = L.shown(tool, raw).slice(0, 300); // masqué (secrets, commandes si l'option est active) avant troncature
     return { ts: t ? localTs(t) : '', t, sid: '', session: sessIds.has(id(e.session)) ? id(e.session) : (e.session ? id(e.session) : null),
-      tool, cat: catOf(e.category ?? e.cat, tool, what), blocked: bool(e.blocked), what, dirLabel: str(e.dirLabel, 60), agent: str(e.agent, 60) || undefined, quota: bool(e.quota) };
+      tool, cat, blocked: bool(e.blocked), what, dirLabel: str(e.dirLabel, 60), agent: str(e.agent, 60) || undefined, quota: bool(e.quota) };
   }).sort((a, b) => b.t - a.t);
 
   // agents (sous-agents, workers…) : regroupés par session, comme les sous-agents Claude Code
@@ -87,7 +89,7 @@ function snapshot(dir, env) {
     const g = bySess.get(owner) || { session: owner, name: null, model: '', alive: false, mtime: 0, agents: [], agentTypes: Object.create(null), agentCount: 0 };
     const status = AGENT_ST.includes(a.status) ? a.status : 'running';
     const mtime = time(a.updated) || fileMs; // sans date : celle du fichier (stable d'une lecture à l'autre)
-    const tl = arr(a.tools, 15).filter((u) => u && typeof u === 'object').map((u) => { const tool = str(u.tool, 60) || 'tool', what = str(u.what, 300); return { t: time(u.ts) || mtime, tool, what, cat: catOf(u.category, tool, what), refused: bool(u.blocked) }; });
+    const tl = arr(a.tools, 15).filter((u) => u && typeof u === 'object').map((u) => { const tool = str(u.tool, 60) || 'tool', raw = str(u.what, 4000); return { t: time(u.ts) || mtime, tool, what: L.shown(tool, raw).slice(0, 300), cat: catOf(u.category, tool, raw.slice(0, 300)), refused: bool(u.blocked) }; });
     const x = { id: id(a.id) || `${owner}:${type}:${g.agents.length}`, type, description: str(a.description, 300), alias: '', model: str(a.model, 60), status, mtime, workflow: null, tools: tl, lastRefusal: tl.filter((u) => u.refused).pop() || null };
     g.agents.push(x); g.agentCount++;
     const ty = g.agentTypes[type] || (g.agentTypes[type] = { live: 0, total: 0, last: 0, models: Object.create(null) });

@@ -6,7 +6,8 @@
   "bin": { "orchestrator-dashboard": "server.cjs" },
   "scripts": {
     "demo": "node server.cjs start examples",
-    "stop": "node server.cjs stop"
+    "stop": "node server.cjs stop",
+    "test": "node scripts/test.cjs"
   },
   "engines": { "node": ">=18" },
   "keywords": ["ai-agents", "orchestrator", "dashboard", "claude-code", "multi-agent", "observability"]

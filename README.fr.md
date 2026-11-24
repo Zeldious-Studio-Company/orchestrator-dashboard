@@ -11,6 +11,10 @@ Un tableau de bord web local, en temps réel, pour les **orchestrateurs d'agents
 - **N'importe quel orchestrateur** : un fichier JSON à écrire, ou un petit adaptateur. Tous les langages et frameworks conviennent.
 - **Sans dépendance** (Node.js 18+), **en lecture seule**, servi uniquement sur `127.0.0.1`.
 
+## Prérequis
+
+Node.js 18+ est requis. **Node.js 22 ou 24 LTS est recommandé**, car Node.js 18 et 20 sont en fin de vie.
+
 ## Installation (sans git ni compte GitHub)
 
 Les adresses `v1.0.0` ci-dessous ne fonctionnent qu'une fois l'étiquette `v1.0.0` publiée (avant cela, définis `ORCH_DASHBOARD_REF` sur une branche). L'installeur télécharge une version figée en HTTPS (Node.js 18+ requis) et ajoute une commande `orchestrator-dashboard`, qui remplace `node server.cjs` ci-dessous. Ne le fais pas passer dans un shell : télécharge le script, vérifie-le, lis-le, puis exécute-le.

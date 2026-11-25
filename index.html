@@ -17,6 +17,18 @@
     --m-opus: #b197ff; --m-fable: #ff9b5e; --m-sonnet: #6d9eff; --m-haiku: #3ccf7d; --m-other: #93a0b0; }
 }
 * { box-sizing: border-box; }
+/* barres de défilement aux couleurs de l'interface (page, carte, fenêtre de détail, listes, tableaux, champs) :
+   poignée arrondie fine, couleur de bordure, accent au survol ; suit le thème clair ou sombre */
+:root { color-scheme: light dark; --sb-thumb: color-mix(in srgb, var(--muted) 45%, var(--border)); --sb-hover: var(--accent); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--sb-thumb); border-radius: 99px; border: 3px solid transparent; background-clip: padding-box; min-height: 32px; }
+::-webkit-scrollbar-thumb:hover { background: var(--sb-hover); border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:active { background: var(--sb-hover); border-width: 2px; background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: var(--sb-thumb) transparent; }
+}
 body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 header { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 20px;
   background: var(--panel); border-bottom: 1px solid var(--border); }

@@ -42,7 +42,7 @@ Every field is optional except those marked *(required)*. Dates are ISO 8601 (`2
     "skipped": []
   },
 
-  "sessions": [{                                       // sessions, workers, processes…: "Sessions" bubbles
+  "sessions": [{                                       // sessions, workers, processes…: session nodes on the map
     "id": "w1",                                        // (required) stable id
     "name": "Worker 1", "kind": "worker", "kindLabel": { "en": "worker", "fr": "ouvrier" },
     "parent": "lead",                                  // session that started it (link on the map)
@@ -50,8 +50,8 @@ Every field is optional except those marked *(required)*. Dates are ISO 8601 (`2
     "status": "waiting",                               // running | starting | waiting | blocked | paused | done | handed-off | idle | failed
     "phase": "Build", "mode": "…", "inProgress": ["SHOP-12"], "waitingFor": "review", "blockedReason": "…",
     "model": "claude-sonnet-5-5",                      // model shown in the bubble
-    "claudeSessionId": "…",                            // Claude Code session: model and sub-agents read from its transcript
-    "started": "…", "updated": "…", "host": "…", "note": "…", "pending": false
+    "claudeSessionId": "…",                            // Claude Code session: model and sub-agents read from its transcript; letters, digits, _ and -, 8 to 80 characters, not starting with "-". Relaunchable and writable from the page only when alive is false (sub-agents relaunch or write to their owning session; the dashboard's own config.json sets the binary, never this file)
+    "started": "…", "updated": "…", "host": "…", "note": "…", "pending": false   // pending: true keeps the session on the map while it is not done, even if not alive
   }],
 
   "activity": [{                                       // activity feed (300 at most)
@@ -68,8 +68,10 @@ Every field is optional except those marked *(required)*. Dates are ISO 8601 (`2
   }],
   "roster": [{ "name": "reviewer", "description": "…", "model": "sonnet" }],             // available agents (always shown)
 
-  "tasks": [{                                          // "Your turn": what the human must do, step by step
+  "tasks": [{                                          // what the human must do, step by step, shown on the node the task belongs to
     "id": "stripe-key",                                // (required) stable while the task stays the same
+    "session": "w2",                                   // id of the session it belongs to (its node), optional
+    "agent": "reviewer",                               // or the type of a sub-agent (its node "a:<type>"), optional
     "kind": "blocked", "kindLabel": "Blocked", "tone": "bad",
     "title": "Provide the Stripe key", "summary": "Worker 2 is waiting for #12", "doneText": "…",
     "steps": [                                         // one simple, checkable action per step, in order
@@ -78,6 +80,7 @@ Every field is optional except those marked *(required)*. Dates are ISO 8601 (`2
       { "text": "Restart the worker", "cmd": "crew resume w2", "where": "Terminal, in the project folder" }
     ]
   }],
+  // Attachment: "agent" wins over "session" when both are known; an unknown id, no id, or a node not drawn on the map goes to the "You" node, with a note. Nothing is deduced from status, pending or waitingFor.
   "links": { "item": "https://jira.example.com/browse/{id}", "pr": "https://…/pull/{id}" },   // #12 and step "item"/"pr"
 
   "alerts": [{ "tone": "warn", "title": "Budget", "text": "64% of the budget used" }],
@@ -87,7 +90,7 @@ Every field is optional except those marked *(required)*. Dates are ISO 8601 (`2
   "inbox": { "items": ["Use Postgres 17"], "hint": "Write your instructions in inbox.txt", "title": "Instructions" },
   "feed": { "title": "Triggers", "items": [{ "ts": "…", "chip": "cron", "text": "Nightly run" }] },
   "workflows": [{ "id": "wf1", "tasks": [{ "id": "t1", "agent": "coder", "after": [] }], "parallel": 2, "done": false, "alive": true }],
-  "hints": { "sessions": "…", "activity": "…", "usage": "…", "feed": "…", "inbox": "…" }  // texts shown when a section is empty
+  "hints": { "sessions": "…", "activity": "…", "usage": "…", "feed": "…", "inbox": "…" }  // texts shown when a section is empty; only "usage" is displayed as a panel, the other keys are read but not displayed
 }
 ```
 
@@ -130,3 +133,5 @@ module.exports = {
 ```
 
 `snapshot` returns the same fields as the JSON file above, already in the page's format (`node server.cjs snapshot <folder>` shows the result). Orchestrator-specific adapters are tried before the `json` adapter. To pick a project's adapter: `node server.cjs add <folder> <adapter>`.
+
+`tasks[].attach` is computed by the dashboard, not by the adapter: from `session` and `agent` (a known `agent` wins), against the sessions and agent types of the snapshot. Any `attach` the adapter returns is overwritten. A task of a workflow session (`kind: "workflow"`) that the map does not draw (not alive, not recent, not blocked, not pending) stays on the « You » node with the note « attached to … not shown on the map »: a task does not make its workflow visible.

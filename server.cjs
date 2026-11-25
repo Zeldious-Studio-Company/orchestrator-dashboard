@@ -11,9 +11,12 @@
 // traduits (export « i18n »), servis à la page par /api/i18n.
 // Interface en français et en anglais (choix dans la page).
 //
-// Lecture seule : rien n'est écrit dans les projets ; le registre, l'adresse du serveur et son journal sont dans
-// le dossier du tableau de bord. Seule action possible depuis la page : montrer dans l'explorateur un
-// dossier ou un fichier d'une étape (POST /api/open, par référence, jamais par chemin). Sans dépendance (Node 18+).
+// Lecture seule pour les projets : rien n'est écrit dans les projets. Le registre, l'adresse du serveur et son journal
+// sont dans le dossier du tableau de bord. Trois actions depuis la page, seules écritures possibles : montrer dans
+// l'explorateur un dossier ou un fichier d'une étape (POST /api/open, par référence, jamais par chemin) ; relancer une
+// session bloquée (POST /api/relaunch) ; écrire un message à une session (POST /api/message). Les deux dernières lancent
+// « claude -p --resume » après confirmation de l'humain, sans shell, sur une session connue de l'instantané seulement ;
+// le message part par l'entrée standard, jamais dans la ligne de commande. Sans dépendance (Node 18+).
 //   node server.cjs start [dossier] [port]   inscrit le projet (s'il est donné), lance le serveur en arrière-plan
 //                                            s'il ne tourne pas, affiche l'URL (LANCÉ: … ou DÉJÀ EN COURS: …)
 //   node server.cjs serve [port]             serveur au premier plan
@@ -124,7 +127,11 @@ function snapshotOf(e, targets) {
   if (!a) return { ...base, adapter: e.adapter, project: { name: path.basename(e.dir), dir: e.dir }, error: T('err.noAdapter', { dir: e.dir }) };
   try {
     const s = a.snapshot(e.dir, { targets, entry: e });
-    return { ...base, adapter: a.id, adapterName: a.name || a.id, ...s };
+    const snap = L.attachTasks({ ...base, adapter: a.id, adapterName: a.name || a.id, ...s });
+    // relance (issue #24) : plan par nœud, mode de permission du réglage, états des lancements du projet
+    snap.relaunch = { nodes: L.relaunchPlan(snap), mode: L.settings().claudePermissionMode };
+    snap.runs = runsOf(e.id);
+    return snap;
   } catch (err) {
     return { ...base, adapter: a.id, project: { name: projectName(e, a), dir: e.dir }, error: String(err && err.message || err) };
   }
@@ -172,6 +179,77 @@ function openLocal(req, res, allowedHosts, targetsOf) {
       c.on('error', () => {});
     } catch (e) { return json(500, { error: String(e && e.message || e) }); }
     json(200, { ok: true, dir: t.dir });
+  });
+}
+
+// ---------- relance d'une session bloquée (issue #24) ----------
+// POST seul, par la page elle-même (Origin), JSON seulement, corps borné ; la page n'envoie que le projet, le nœud
+// visé et la confirmation : la session, le dossier et la commande sont résolus ici, dans le dernier instantané.
+// Aucun lancement sans confirmation ; un seul processus par session ; sans shell ; l'arbre est tué au délai maximal.
+const RUNS = new Map(); // « projet|session » -> { state: 'running' | 'done' | 'failed', code, reason, at }
+function runsOf(projectId) {
+  const out = {}, pre = `${projectId}|`;
+  for (const [k, v] of RUNS) if (k.startsWith(pre)) out[k.slice(pre.length)] = { state: v.state, code: v.code, reason: v.reason, at: v.at };
+  return out;
+}
+// journal du serveur : horodatage, route, cible, taille du texte, issue (jamais le texte lui-même)
+function auditLog(route, target, size, outcome) {
+  const safe = String(target || '').replace(/[^\w:+.@/-]/g, '_').slice(0, 120);
+  try { fs.appendFileSync(LOG, `${new Date().toISOString()} ${route} cible=${safe} texte=${size == null ? '-' : size} issue=${outcome}\n`); } catch {}
+}
+function killTree(child) {
+  if (process.platform === 'win32') {
+    try { execFile(L.WIN_TASKKILL, ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true }, () => {}).on('error', () => {}); } catch {}
+  } else {
+    try { process.kill(-child.pid, 'SIGTERM'); } catch { try { child.kill('SIGTERM'); } catch {} }
+  }
+}
+// lance le processus de reprise : arguments en tableau, pas de shell, environnement sans ORCH_DASHBOARD_*,
+// texte seulement par l'entrée standard, détaché de la requête. Sa sortie n'est jamais gardée ni renvoyée.
+// o.maxMs (interne, jamais fourni par une requête) remplace le délai maximal des tests. Renvoie le processus, ou null
+// si le lancement échoue de façon synchrone (l'état est alors « failed », sans ligne de journal : l'appelant journalise).
+function startRun(key, o) {
+  const set = (state, code, reason) => RUNS.set(key, { state, code, reason: reason || '', at: Date.now() });
+  set('running', null, '');
+  let child, timedOut = false;
+  try {
+    child = spawn(o.file, o.args, { cwd: o.cwd, shell: false, windowsHide: true, detached: true, stdio: ['pipe', 'ignore', 'ignore'], env: L.childEnv(process.env) });
+  } catch { set('failed', null, 'spawn'); return null; }
+  const log = o.log || (() => {});
+  const timer = setTimeout(() => { timedOut = true; set('failed', null, 'timeout'); log('délai dépassé'); killTree(child); }, o.maxMs || L.RELAUNCH_MAX_MS);
+  child.on('error', () => { clearTimeout(timer); if (!timedOut) { set('failed', null, 'spawn'); log('échec : lancement'); } });
+  child.on('exit', (code, signal) => {
+    clearTimeout(timer);
+    if (timedOut) return;
+    set(code === 0 ? 'done' : 'failed', code, code === 0 ? '' : signal ? 'signal' : 'exit');
+    log(code === 0 ? 'terminé (code 0)' : `échec : ${signal ? 'signal ' + signal : 'code ' + code}`);
+  });
+  child.stdin.on('error', () => {});
+  child.stdin.end(o.text, 'utf8');
+  return child;
+}
+// lecture du corps d'une requête d'action : mêmes contrôles qu'openLocal (Origin, JSON), plafond d'octets
+function postAction(req, res, allowedHosts, max, handle, onLarge) {
+  const json = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(o)); };
+  const origin = String(req.headers.origin || '').toLowerCase();
+  if (!origin.startsWith('http://') || !allowedHosts.has(origin.slice(7))) return json(403, { error: 'origin' });
+  if (!/^application\/json\b/i.test(String(req.headers['content-type'] || ''))) return json(415, { error: 'json' });
+  let body = '', sent = false;
+  req.setEncoding('utf8');
+  req.on('data', (d) => {
+    if (sent) return;
+    body += d;
+    if (Buffer.byteLength(body) > max) {
+      sent = true; res.setHeader('Connection', 'close'); json(413, { error: 'large' });
+      if (onLarge) onLarge(); // journal : la requête refusée avant lecture de sa cible (cible et taille inconnues)
+    }
+  });
+  req.on('end', () => {
+    if (sent) return;
+    let b;
+    try { b = JSON.parse(body); } catch { return json(400, { error: 'request' }); }
+    if (!b || typeof b !== 'object' || Array.isArray(b)) return json(400, { error: 'request' });
+    handle(b, json);
   });
 }
 
@@ -239,6 +317,47 @@ function serve(port) {
     for (const c of allClients) c.write(`event: projects\ndata: ${data}\n\n`);
   }
 
+  // instantané frais d'un projet : sans flux ouvert, le dernier instantané peut être périmé (sessions, états de relance)
+  const snapshotFor = (e) => { const p = L_(e.id); p.targets = new Map(); p.current = snapshotOf(e, p.targets); return p.current; };
+  // POST /api/relaunch : { project, target, confirm: true } ; POST /api/message : même corps avec « text » (issue #25).
+  // La cible est résolue dans le dernier instantané ; 202 au lancement. Les deux routes partagent refus, plafonds et
+  // verrou par session ; seul le texte envoyé change (message de reprise fixe, ou message de l'humain précédé de sa mention).
+  function resumeAction(b, json, route) {
+    const msg = route === 'message';
+    const pid = String(b.project || ''), node = String(b.target || '');
+    const size = msg && typeof b.text === 'string' ? [...b.text].length : 0;
+    const done = (outcome, code, o) => { auditLog(msg ? 'message' : 'relance', node, size, outcome); json(code, o); };
+    if (b.confirm !== true) return done('confirmation absente', 400, { error: 'confirm' });
+    if (!msg && b.text !== undefined) return done('texte refusé sur cette route', 400, { error: 'text' });
+    if (msg && (typeof b.text !== 'string' || !b.text.trim())) return done('texte vide', 400, { error: 'text' });
+    if (msg && size > L.MESSAGE_MAX_CHARS) return done('texte trop long', 413, { error: 'large' });
+    if (!/^[0-9a-f]{10}$/.test(pid) || !node || node.length > 120) return done('requête invalide', 400, { error: 'request' });
+    const e = registry().find((x) => x.id === pid);
+    if (!e) return done('projet inconnu', 404, { error: 'unknown' });
+    const snap = snapshotFor(e);
+    const plan = snap.relaunch && snap.relaunch.nodes;
+    const p = plan && Object.hasOwn(plan, node) ? plan[node] : null;
+    if (!p) { const why = L.refusalOf(node); return why ? done(`refus : ${why}`, 409, { error: 'refused', reason: why }) : done('cible inconnue', 404, { error: 'unknown' }); }
+    const bad = !p.ok && p.reason === 'noSession' && (snap.sessions || []).find((x) => x.id === p.session);
+    if (bad && bad.claudeSessionIdInvalid) return done('identifiant invalide', 400, { error: 'request' }); // présent mais invalide : 400, pas 409 (QA issue #24)
+    if (!p.ok) return done(`refus : ${p.reason}`, 409, { error: 'refused', reason: p.reason });
+    const s = (snap.sessions || []).find((x) => x.id === p.session);
+    if (!s || !L.SID_RE.test(String(s.claudeSessionId || ''))) return done('identifiant invalide', 400, { error: 'request' });
+    const key = `${pid}|${s.id}`;
+    const cur = RUNS.get(key);
+    if (cur && cur.state === 'running') return done('refus : déjà en cours', 409, { error: 'refused', reason: 'running' });
+    const tf = L.findTranscript(s.claudeSessionId, [e.dir]);
+    const st = tf && L.stat(tf);
+    if (st && Date.now() - st.mtimeMs < L.WRITE_QUIET_MS) return done('refus : transcrit récent', 409, { error: 'refused', reason: 'recent' });
+    const cmd = L.claudeCommand();
+    if (cmd.error) return done(`binaire : ${cmd.error}`, 500, { error: 'binary', reason: cmd.error });
+    const args = [...cmd.pre, ...L.resumeArgs(s.claudeSessionId, L.settings().claudePermissionMode)];
+    const text = msg ? L.messageText(b.text, node, s) : L.RESUME_TEXT;
+    const log = (outcome) => auditLog(msg ? 'message' : 'relance', node, size, outcome);
+    // lancement synchrone impossible : une seule ligne de journal (celle-ci) et une réponse qui ne dit pas « lancé »
+    if (!startRun(key, { file: cmd.file, args, cwd: e.dir, text, log })) return done('échec : lancement', 500, { error: 'launch' });
+    done('lancé', 202, { ok: true, state: 'running' });
+  }
   const allowedHosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
   const handleRequest = (req, res) => {
     // protège contre le DNS rebinding : seule l'adresse locale est servie
@@ -258,6 +377,18 @@ function serve(port) {
     }
     if (!tokenOk(cookieOf(req), TOKEN)) { res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }); res.end('Acces refuse : ouvrir l adresse donnee par la commande start (elle porte le jeton).'); return; }
     if (req.method === 'POST' && url === '/api/open') { openLocal(req, res, allowedHosts, (id) => (live.get(id) || {}).targets); return; }
+    if (url === '/api/relaunch') {
+      if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+      postAction(req, res, allowedHosts, L.ACTION_BODY_MAX, (b, json) => resumeAction(b, json, 'relance'),
+        () => auditLog('relance', '-', null, 'corps trop volumineux'));
+      return;
+    }
+    if (url === '/api/message') {
+      if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+      postAction(req, res, allowedHosts, L.ACTION_BODY_MAX, (b, json) => resumeAction(b, json, 'message'),
+        () => auditLog('message', '-', null, 'corps trop volumineux'));
+      return;
+    }
     if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
     const sec = { 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'no-referrer' };
     const sendJson = (o) => { res.writeHead(200, { ...sec, 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(o)); };
@@ -275,9 +406,7 @@ function serve(port) {
     } else if (url === '/api/snapshot') {
       const e = pick(u.searchParams.get('p'));
       if (!e) { sendJson({ schema: SCHEMA, error: T('err.noProject') }); return; }
-      const p = L_(e.id);
-      if (!p.current) { p.targets = new Map(); p.current = snapshotOf(e, p.targets); }
-      sendJson(p.current);
+      sendJson(snapshotFor(e));
     } else if (url === '/events') {
       if (allClients.size >= 20) { res.writeHead(503, sec); res.end('Trop de flux ouverts.'); return; } // plafond : 20 flux /events
       res.writeHead(200, { ...sec, 'Content-Type': 'text/event-stream; charset=utf-8', Connection: 'keep-alive' });
@@ -445,4 +574,4 @@ async function main() {
   usage();
 }
 if (require.main === module) main();
-module.exports = { snapshotOf, register, registry, ADAPTERS, projectId };
+module.exports = { snapshotOf, register, registry, ADAPTERS, projectId, startRun, RUNS };

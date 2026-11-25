@@ -213,6 +213,18 @@ function claudeRoot() {
 // ~/.local/state (autres). Sous Windows, le nom n'est PAS « orchestrator-dashboard » : c'est le dossier d'installation
 // par défaut de install.ps1, qu'une réinstallation supprime (Remove-Item -Recurse).
 const WIN_STATE_DIR = 'orchestrator-dashboard-state';
+// ---------- relance d'une session (issue #24) : constantes partagées avec l'envoi de message (issue #25) ----------
+// identifiant de session Claude Code : jamais de « - » en premier caractère (ce serait une option de la ligne de commande)
+const SID_RE = /^[A-Za-z0-9_][A-Za-z0-9_-]{7,79}$/;
+// message de reprise fixe : il part par l'entrée standard, jamais dans les arguments
+const RESUME_TEXT = 'Reprends la tâche en cours là où elle s\'est arrêtée, puis dis-moi où tu en es.';
+// valeurs permises pour le réglage claudePermissionMode (jamais lu depuis le fichier du projet)
+const PERMISSION_MODES = ['default', 'acceptEdits', 'plan', 'auto', 'dontAsk'];
+const RELAUNCH_MAX_MS = 10 * 60 * 1000; // délai maximal d'un processus lancé par le tableau de bord (arbre tué au-delà)
+const WRITE_QUIET_MS = 60 * 1000;       // transcrit modifié plus récemment que cela : session peut-être utilisée ailleurs
+const ACTION_BODY_MAX = 8192;           // corps maximal d'une requête d'action (octets)
+const MESSAGE_MAX_CHARS = 4000;         // longueur maximale du message écrit à une session (caractères, issue #25)
+const WIN_TASKKILL = path.join(WIN_SYSROOT, 'System32', 'taskkill.exe');
 function stateDir() {
   if (process.env.ORCH_DASHBOARD_HOME) return toNative(process.env.ORCH_DASHBOARD_HOME);
   const legacy = path.join(claudeRoot(), 'orchestrator-dashboard');
@@ -238,7 +250,86 @@ function settings() {
   return {
     port: Number(env.ORCH_DASHBOARD_PORT || c.port || 4870),
     editorUrl: env.ORCH_DASHBOARD_EDITOR != null ? env.ORCH_DASHBOARD_EDITOR : typeof c.editorUrl === 'string' ? c.editorUrl : 'vscode://file{path}:{line}',
+    // binaire claude : variable ORCH_DASHBOARD_CLAUDE, sinon config.json (jamais le fichier du projet)
+    claudePath: String(env.ORCH_DASHBOARD_CLAUDE || (typeof c.claudePath === 'string' ? c.claudePath : '')).trim(),
+    claudePermissionMode: PERMISSION_MODES.includes(c.claudePermissionMode) ? c.claudePermissionMode : '',
   };
+}
+// binaire claude, sans shell : réglage explicite (un .cjs/.js/.mjs est lancé par node), sinon claude.exe dans PATH
+// (Windows) ou claude (autres). Un .cmd/.bat est refusé : il ne peut être lancé sans shell.
+function claudeCommand(s = settings()) {
+  if (s.claudePath) {
+    const p = toNative(s.claudePath);
+    if (/\.(cmd|bat)$/i.test(p)) return { error: 'cmd' };
+    const st = stat(p);
+    if (!st || !st.isFile()) return { error: 'missing' };
+    return /\.(cjs|js|mjs)$/i.test(p) ? { file: process.execPath, pre: [p] } : { file: p, pre: [] };
+  }
+  const name = process.platform === 'win32' ? 'claude.exe' : 'claude';
+  let cmdOnly = false;
+  for (const d of String(process.env.PATH || '').split(path.delimiter)) {
+    if (!d || !path.isAbsolute(d)) continue; // jamais un dossier relatif (ni le dossier courant)
+    const f = path.join(d, name);
+    const st = stat(f);
+    if (st && st.isFile()) return { file: f, pre: [] };
+    if (process.platform === 'win32' && stat(path.join(d, 'claude.cmd'))) cmdOnly = true;
+  }
+  return { error: cmdOnly ? 'cmd' : 'missing' };
+}
+// arguments de la reprise : identifiant validé, drapeau de permission seulement si le réglage le demande
+function resumeArgs(sid, mode) {
+  if (!SID_RE.test(String(sid || ''))) throw new Error('identifiant de session invalide');
+  const a = ['-p', '--resume', sid, '--output-format', 'json'];
+  if (PERMISSION_MODES.includes(mode)) a.push('--permission-mode', mode);
+  return a;
+}
+// environnement transmis au processus : sans aucune variable ORCH_DASHBOARD_* (dont le jeton d'accès)
+const childEnv = (env = process.env) => Object.fromEntries(Object.entries(env).filter(([k]) => !/^ORCH_DASHBOARD_/i.test(k)));
+// plan de relance par nœud de la carte, calculé sur l'instantané seul : { ok, reason, session? }.
+// Sous-agent : session propriétaire seulement si elle est unique ; « human » ou plusieurs sessions : refusé.
+function relaunchPlan(snap) {
+  const nodes = {};
+  const sessions = new Map((snap && Array.isArray(snap.sessions) ? snap.sessions : []).filter((s) => s && s.id).map((s) => [String(s.id), s]));
+  const sessionPlan = (s) => {
+    if (!SID_RE.test(String(s.claudeSessionId || ''))) return { ok: false, reason: 'noSession', session: s.id };
+    if (s.alive) return { ok: false, reason: 'alive', session: s.id };
+    return { ok: true, reason: 'ok', session: s.id };
+  };
+  for (const s of sessions.values()) nodes[`s:${s.id}`] = sessionPlan(s);
+  const owners = new Map(); // type de sous-agent -> identifiants des sessions propriétaires
+  for (const g of snap && Array.isArray(snap.agents) ? snap.agents : []) {
+    if (!g || typeof g !== 'object') continue;
+    for (const ty of Object.keys(g.agentTypes || {})) {
+      const set = owners.get(ty) || new Set();
+      set.add(String(g.session));
+      owners.set(ty, set);
+    }
+  }
+  for (const [ty, set] of owners) {
+    const ids = [...set];
+    if (ids.length > 1) nodes[`a:${ty}`] = { ok: false, reason: 'ambiguous' };
+    else if (ids[0] === 'human') nodes[`a:${ty}`] = { ok: false, reason: 'humanOwner' };
+    else if (!sessions.has(ids[0])) nodes[`a:${ty}`] = { ok: false, reason: 'unknownOwner' };
+    else nodes[`a:${ty}`] = sessionPlan(sessions.get(ids[0]));
+  }
+  return nodes;
+}
+// texte envoyé à une session (issue #25) : le message de l'humain, précédé de la mention de l'agent ou du workflow
+// visé. La mention vient du serveur (jamais de la page) : le texte reste sur l'entrée standard.
+function messageText(text, node, sess) {
+  const name = sess && (sess.name || sess.id) ? String(sess.name || sess.id) : '';
+  let pre = '';
+  if (/^a:/.test(node)) pre = `Pour l'agent ${node.slice(2)} : `;
+  else if (sess && sess.kind === 'workflow') pre = `Pour le workflow « ${name} » : `;
+  return pre + String(text);
+}
+// raison de refus d'un nœud absent du plan (outil, « Toi », « Événements », quota) ; null si le nœud est inconnu
+function refusalOf(node) {
+  if (node === 'in:human') return 'you';
+  if (node === 'in:watch') return 'events';
+  if (node === 'in:quota') return 'quota';
+  if (/^t:[\w.-]{1,60}$/.test(node)) return 'tool';
+  return null;
 }
 // usageBand : quotas du compte lus par le mod usage-band (windows.json : 5 h / 7 j, models.json : par modèle) ;
 // null si le mod n'est pas installé ou si ses fichiers sont illisibles
@@ -565,9 +656,35 @@ function itemRefs(texts, links) {
   return refs;
 }
 
+// Rattachement d'un blocage (tasks[]) à un nœud de la carte. Pur : pas d'accès disque ni d'état de la page.
+// Champs explicites seulement : `agent` (type de sous-agent, nœud « a:<type> ») puis `session` (id de session,
+// nœud « s:<id> »). Le premier identifiant connu l'emporte ; un identifiant absent des données donne reason
+// « unknown » (la page le montre sur « Toi », « introuvable »). Aucune déduction à partir de l'état des sessions.
+// ctx : { sessions: Set d'ids de session, types: Set de types de sous-agent }
+function attachTask(task, ctx) {
+  const agent = task && typeof task.agent === 'string' ? task.agent : '';
+  const session = task && typeof task.session === 'string' ? task.session : '';
+  if (agent && ctx.types.has(agent)) return { node: `a:${agent}`, reason: 'agent', ref: agent };
+  if (session && ctx.sessions.has(session)) return { node: `s:${session}`, reason: 'session', ref: session };
+  if (agent || session) return { node: null, reason: 'unknown', ref: agent || session };
+  return { node: null, reason: 'none', ref: '' };
+}
+// Renseigne task.attach = { node, reason, ref } pour chaque tâche d'un instantané (écrase toute valeur fournie
+// par un adaptateur : le rattachement est décidé ici, jamais par le fichier ou l'adaptateur).
+function attachTasks(snap) {
+  if (!snap || !Array.isArray(snap.tasks)) return snap;
+  const sessions = new Set((snap.sessions || []).map((s) => s && s.id).filter(Boolean));
+  const types = new Set((snap.roster || []).map((r) => r && r.name).filter(Boolean));
+  for (const a of snap.agents || []) for (const ty of Object.keys(a.agentTypes || {})) types.add(ty);
+  for (const t of snap.tasks) if (t && typeof t === 'object') t.attach = attachTask(t, { sessions, types });
+  return snap;
+}
+
 module.exports = {
-  T, toNative, same, inside, readText, stat, listDir, tailText, tailLines, readJson, readShConfig,
+  attachTask, attachTasks, T, toNative, same, inside, readText, stat, listDir, tailText, tailLines, readJson, readShConfig,
   WIN_TASKLIST, WIN_EXPLORER, refreshProcs, pidAlive, classifier, BASE_TOOLS, toolWhat, guardWhat, sigOf, maskSecrets, hideCommands, shown,
   RECENT_MS, LIVE_MS, claudeRoot, stateDir, rotateLog, settings, usageBand, findTranscript, transcriptInfo, readRoster, claudeAgents, attributeSubagentTools,
   httpUrl, cleanText, plain, editorUrl, stepContext, localTarget, normStep, itemRefs,
+  SID_RE, RESUME_TEXT, PERMISSION_MODES, RELAUNCH_MAX_MS, WRITE_QUIET_MS, ACTION_BODY_MAX, WIN_TASKKILL,
+  claudeCommand, resumeArgs, childEnv, relaunchPlan, refusalOf, messageText, MESSAGE_MAX_CHARS,
 };

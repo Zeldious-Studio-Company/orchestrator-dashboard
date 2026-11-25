@@ -42,7 +42,7 @@ Tous les champs sont facultatifs, sauf ceux marqués *(requis)*. Les dates sont 
     "skipped": []
   },
 
-  "sessions": [{                                       // sessions, workers, process… : bulles « Sessions »
+  "sessions": [{                                       // sessions, workers, process… : nœuds de session sur la carte
     "id": "w1",                                        // (requis) identifiant stable
     "name": "Worker 1", "kind": "worker", "kindLabel": { "fr": "ouvrier", "en": "worker" },
     "parent": "lead",                                  // session qui l'a lancée (lien sur la carte)
@@ -50,8 +50,8 @@ Tous les champs sont facultatifs, sauf ceux marqués *(requis)*. Les dates sont 
     "status": "waiting",                               // running | starting | waiting | blocked | paused | done | handed-off | idle | failed
     "phase": "Code", "mode": "…", "inProgress": ["SHOP-12"], "waitingFor": "review", "blockedReason": "…",
     "model": "claude-sonnet-5-5",                      // modèle affiché dans la bulle
-    "claudeSessionId": "…",                            // session Claude Code : modèle et sous-agents lus dans son transcript
-    "started": "…", "updated": "…", "host": "…", "note": "…", "pending": false
+    "claudeSessionId": "…",                            // session Claude Code : modèle et sous-agents lus dans son transcript ; lettres, chiffres, _ et -, 8 à 80 caractères, ne commençant pas par « - ». Relançable et écrivable depuis la page seulement si alive est false (les sous-agents relancent ou écrivent à leur session propriétaire ; le binaire est réglé dans le config.json du tableau de bord, jamais dans ce fichier)
+    "started": "…", "updated": "…", "host": "…", "note": "…", "pending": false   // pending : true garde la session sur la carte tant qu'elle n'est pas terminée, même si elle ne tourne plus
   }],
 
   "activity": [{                                       // fil d'activité (300 au plus)
@@ -68,8 +68,10 @@ Tous les champs sont facultatifs, sauf ceux marqués *(requis)*. Les dates sont 
   }],
   "roster": [{ "name": "reviewer", "description": "…", "model": "sonnet" }],             // agents disponibles (toujours visibles)
 
-  "tasks": [{                                          // « À toi d'agir » : ce que l'humain doit faire, étape par étape
+  "tasks": [{                                          // ce que l'humain doit faire, étape par étape, affiché sur le nœud auquel la tâche appartient
     "id": "stripe-key",                                // (requis) stable tant que la tâche est la même
+    "session": "w2",                                   // id de la session à laquelle elle appartient (son nœud), facultatif
+    "agent": "reviewer",                               // ou le type d'un sous-agent (son nœud « a:<type> »), facultatif
     "kind": "blocked", "kindLabel": "Bloqué", "tone": "bad",
     "title": "Fournir la clé Stripe", "summary": "Worker 2 attend #12", "doneText": "…",
     "steps": [                                         // une action simple et vérifiable par étape, dans l'ordre
@@ -78,6 +80,7 @@ Tous les champs sont facultatifs, sauf ceux marqués *(requis)*. Les dates sont 
       { "text": "Relance le worker", "cmd": "crew resume w2", "where": "Terminal, dans le dossier du projet" }
     ]
   }],
+  // Rattachement : « agent » l'emporte sur « session » quand les deux sont connus ; un identifiant inconnu, absent, ou un nœud non affiché sur la carte va sur le nœud « Toi », avec une mention. Rien n'est déduit du statut, de pending ou de waitingFor.
   "links": { "item": "https://jira.example.com/browse/{id}", "pr": "https://…/pull/{id}" },   // #12 et "item"/"pr" des étapes
 
   "alerts": [{ "tone": "warn", "title": "Budget", "text": "64 % du budget utilisé" }],
@@ -87,7 +90,7 @@ Tous les champs sont facultatifs, sauf ceux marqués *(requis)*. Les dates sont 
   "inbox": { "items": ["Utiliser Postgres 17"], "hint": "Écris tes consignes dans inbox.txt", "title": "Consignes" },
   "feed": { "title": "Déclencheurs", "items": [{ "ts": "…", "chip": "cron", "text": "Run nightly" }] },
   "workflows": [{ "id": "wf1", "tasks": [{ "id": "t1", "agent": "coder", "after": [] }], "parallel": 2, "done": false, "alive": true }],
-  "hints": { "sessions": "…", "activity": "…", "usage": "…", "feed": "…", "inbox": "…" }  // textes quand une section est vide
+  "hints": { "sessions": "…", "activity": "…", "usage": "…", "feed": "…", "inbox": "…" }  // textes quand une section est vide ; seul « usage » est affiché en panneau, les autres clés sont lues mais non affichées
 }
 ```
 
@@ -130,3 +133,5 @@ module.exports = {
 ```
 
 `snapshot` rend les mêmes champs que le fichier JSON ci-dessus, déjà au format de la page (`node server.cjs snapshot <dossier>` montre le résultat). Les adaptateurs propres à un orchestrateur passent avant l'adaptateur `json`. Pour choisir l'adaptateur d'un projet : `node server.cjs add <dossier> <adaptateur>`.
+
+`tasks[].attach` est calculé par le tableau de bord, pas par l'adaptateur : à partir de `session` et `agent` (un `agent` connu l'emporte), par rapport aux sessions et aux types de sous-agents de l'instantané. Un `attach` renvoyé par l'adaptateur est écrasé. Une tâche d'une session de workflow (`kind: "workflow"`) que la carte ne dessine pas (ni vivante, ni récente, ni bloquée, ni en attente) reste sur le nœud « Toi » avec la mention « rattachée à … non affichée sur la carte » : la présence d'une tâche ne rend pas le workflow visible.

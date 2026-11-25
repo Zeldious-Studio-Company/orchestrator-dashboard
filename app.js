@@ -6,14 +6,13 @@ const DICT = {
   fr: {
     'app': 'Orchestrateur', 'doc.title': '{project} · orchestrateur', 'project': 'Projet', 'lang.switch': 'English',
     'conn.wait': 'connexion…', 'conn.live': 'en direct', 'conn.lost': 'déconnecté — reconnexion…', 'updated': 'dernier changement {ago}',
-    'footer.ro': 'Lecture seule (sauf « Ouvrir le dossier » / « Afficher dans l\'explorateur » des étapes) · données de', 'footer.rt': 'rafraîchi en temps réel',
+    'footer.ro': 'Lecture seule (sauf « Ouvrir le dossier » / « Afficher dans l\'explorateur » des étapes, la relance confirmée d\'une session bloquée et l\'envoi confirmé d\'un message à une session) · données de', 'footer.rt': 'rafraîchi en temps réel',
     'proj.todo': (p) => `${p.n} à faire`, 'proj.missing': 'dossier introuvable', 'proj.others': 'Actions humaines en attente dans les autres projets',
     'run.frozen': 'GEL d\'urgence', 'run.paused': 'en pause', 'run.idle': 'au repos', 'run.error': 'erreur', 'run.active': (p) => `actif · ${p.n} session${s_(p.n)}`,
     'err.read': 'Erreur de lecture', 'err.missingDir': 'Dossier du projet introuvable : {dir}', 'err.noAdapter': 'Aucun orchestrateur reconnu dans {dir}.',
     'err.noProject': 'Aucun projet inscrit. Lance « node server.cjs start <dossier du projet> » (voir FORMAT.md).',
     'json.unreadable.t': 'Fichier illisible', 'json.unreadable': 'Le fichier {file} est absent ou n\'est pas du JSON valide.', 'json.task': 'Action',
-    'human.title': 'À toi d\'agir', 'human.hint': 'une seule étape à la fois · « Terminé » passe à la suivante',
-    'human.count': (p) => `${p.todo} tâche${s_(p.todo)} à faire${p.done ? ` · ${p.done} faite${s_(p.done)}` : ''}`,
+    'blk.noNode': 'sans nœud', 'blk.here': 'à faire ici', 'blk.unknown': 'rattachée à « {id} », introuvable', 'blk.hidden': 'rattachée à « {id} », non affichée sur la carte',
     'hkind.freeze': 'Gel', 'hkind.pause': 'Pause', 'hkind.blocked': 'Bloquée', 'hkind.item': 'Action humaine', 'hkind.pr': 'À valider', 'hkind.pending': 'À reprendre', 'hkind.action': 'Action',
     'human.opened.dir': 'Dossier ouvert dans l\'explorateur.', 'human.opened.file': 'Fichier sélectionné dans l\'explorateur.', 'human.openFail': 'Impossible d\'ouvrir : {err}',
     'human.unreachable': 'Tableau de bord injoignable : ouverture impossible.', 'human.copied': 'Copié : {cmd} — colle-le à l\'endroit indiqué ci-dessus.', 'human.copyFail': 'Copie impossible : sélectionne « {cmd} » à la main.',
@@ -24,27 +23,37 @@ const DICT = {
     'where.journalBelow': 'Tableau de bord : section « Journal » plus bas sur cette page',
     'act.open': 'Ouvrir {tool}', 'act.openFolder': 'Ouvrir le dossier', 'act.reveal': 'Afficher dans l\'explorateur', 'act.copy': 'copier', 'act.copyTitle': 'Copier la commande', 'link': 'lien',
     'step.openLink': 'Ouvre ce lien.', 'step.openPlace': 'Ouvre {place}.', 'step.runCmd': 'Lance cette commande.',
-    'human.nothing': 'Plus rien à faire pour l\'instant. Une nouvelle carte apparaîtra ici dès que l\'orchestrateur aura besoin de toi.',
+    'human.nothing': 'Plus rien à faire pour l\'instant. Une nouvelle action apparaîtra ici dès que l\'orchestrateur aura besoin de toi.',
     'human.taskOf': 'Tâche {i} / {n} · ', 'human.stepOf': 'étape {i} / {n}', 'human.step': 'Étape {i}', 'human.prev': '← Étape précédente', 'human.done': 'Terminé ✓', 'human.next': 'Terminé ✓ · étape suivante →',
     'human.finished': '✓ « {title} » terminée.', 'human.then': 'Ensuite :', 'human.doneHere': 'Faites ici :', 'human.doNow': 'Traiter cette tâche maintenant', 'human.review': 'Revoir ses étapes',
-    'alert.inbox.t': 'Consignes', 'alert.inbox': (p) => `${p.n} consigne${s_(p.n)} pas encore lue${s_(p.n)} par l'orchestrateur.`,
-    'phase.n': 'Phase {i}',
     'status.running': 'en cours', 'status.starting': 'démarrage', 'status.waiting': 'en attente', 'status.blocked': 'bloquée', 'status.paused': 'en pause', 'status.done': 'terminée',
     'status.handed-off': 'passée à la suite', 'status.idle': 'inactive', 'status.failed': 'échec', 'status.unknown': 'inconnu',
     'kind.phase': 'phase', 'kind.item': 'work item', 'kind.annex': 'annexe', 'kind.workflow': 'workflow', 'kind.other': 'session', 'kind.human': 'session humaine',
-    'sess.title': 'Sessions', 'sess.hint': 'clic = filtrer l\'activité', 'sess.count': (p) => `${p.live} vivante${s_(p.live)} / ${p.n}`, 'sess.empty': 'Aucune session pour l\'instant.',
-    'sess.stopped': 'arrêtée', 'sess.alive': 'vivante', 'sess.opening': 'ouverture…', 'sess.phase': 'phase ', 'sess.mode': 'mode ', 'sess.inprog': 'en cours : ', 'sess.waits': 'attend : ',
-    'sess.upd': 'maj {ago}', 'sess.opened': 'ouverte {ago}',
-    'act.title': 'Activité en direct', 'act.all': 'Toutes', 'act.human': 'humain', 'act.newSession': 'nouvelle session', 'act.blocked': '⛔ bloqué : ', 'act.none': 'Rien pour cette session.',
-    'act.empty': 'Pas encore d\'activité. Chaque outil utilisé par l\'orchestrateur apparaît ici.',
+    'sess.phase': 'phase ', 'sess.waits': 'attend : ',
     'q.title': 'Quotas', 'q.now': 'relevé à l\'instant', 'q.ago': 'relevé il y a {n} min', 'q.old': ' (ancien)', 'q.reset': ' · remise à zéro {d}', 'q.empty': 'Aucun relevé de quotas.',
     'usage.fiveHour': 'Fenêtre de 5 h', 'usage.sevenDay': 'Semaine (tous modèles)', 'usage.model': 'Semaine {m}', 'usage.tip.band': 'Relevé du mod usage-band de Claude Code (mis à jour toutes les 1 à 3 min tant qu\'une session est ouverte)',
-    'wf.title': 'Workflows', 'wf.tasks': (p) => `${p.n} tâche${s_(p.n)}`, 'wf.parallel': ' · {n} en parallèle', 'wf.after': 'après {x}', 'wf.empty': 'Aucun workflow lancé.',
-    'wf.result': (p) => `Résultat : ${p.n} rapport${s_(p.n)}${p.s ? `, ${p.s} sautée${s_(p.s)}` : ''}`,
     'j.title': 'Journal', 'j.count': '{n} dernières lignes', 'j.empty': 'Journal vide.',
-    'inbox.title': 'Consignes en attente', 'inbox.empty': 'Aucune consigne en attente.',
+    'inbox.empty': 'Aucune consigne en attente.',
     'feed.title': 'Événements', 'feed.empty': 'Rien pour l\'instant.',
     'ago.at': 'à {t}', 'ago.s': 'il y a {n} s', 'ago.m': 'il y a {n} min', 'ago.h': 'il y a {h} h {m}', 'short.s': '{n} s', 'short.m': '{n} min', 'short.h': '{h} h {m}',
+    'msg.btn': 'Écrire à la session', 'msg.tip': 'Envoie un message à cette session avec « claude --resume », après ta confirmation.', 'msg.label': 'Ton message (texte seul, 4000 caractères au plus ; 8 Ko au maximum)',
+    'msg.check': 'Vérifier le message', 'msg.title': 'Envoyer ce message à la session ?', 'msg.send': 'Envoyer le message', 'msg.cancel': 'Annuler', 'msg.len': 'Longueur : {n} caractères',
+    'msg.byAgent': 'Le message sera précédé de : « Pour l\'agent {a} : ».', 'msg.byWorkflow': 'Le message sera précédé de : « Pour le workflow {w} : ».',
+    'msg.note': 'Le texte part par l\'entrée standard, sans shell, et n\'est pas journalisé. Les demandes d\'approbation sont refusées. Les hooks et serveurs MCP du projet s\'exécutent (pas de --bare). Rien n\'est envoyé sans cette confirmation.',
+    'msg.sent': 'Message envoyé à la session. Sa réponse n\'est pas affichée ici.', 'msg.empty': 'Écris un message avant de le vérifier.', 'msg.tooLong': 'Message trop long : 4000 caractères au plus, et 8 Ko au maximum en octets (environ 2700 caractères chinois, japonais ou emoji).',
+    'msg.err': 'Envoi refusé (erreur {code}).', 'msg.reason.alive': 'Session encore ouverte : on n\'écrit pas dans une session ouverte.',
+    'relaunch.btn': 'Relancer la session', 'relaunch.tip': 'Reprend cette session avec « claude --resume », après ta confirmation.', 'relaunch.title': 'Relancer cette session ?',
+    'relaunch.confirm': 'Confirmer la relance', 'relaunch.cancel': 'Annuler', 'relaunch.project': 'Projet', 'relaunch.session': 'Session', 'relaunch.dir': 'Dossier', 'relaunch.cmd': 'Commande',
+    'relaunch.note': 'Le message de reprise est fixe et passe par l\'entrée standard. Les demandes d\'approbation sont refusées. Rien n\'est lancé sans cette confirmation.',
+    'relaunch.started': 'Relance demandée : son état s\'affiche ci-dessous.', 'relaunch.err': 'Relance refusée (erreur {code}).',
+    'relaunch.state.running': 'Lancé, en cours', 'relaunch.state.done': 'Terminé (code 0)', 'relaunch.state.failed': 'Échec : {why}',
+    'relaunch.why.exit': 'code {code}', 'relaunch.why.signal': 'interrompu', 'relaunch.why.timeout': 'délai de 10 min dépassé', 'relaunch.why.spawn': 'lancement impossible',
+    'relaunch.reason.noSession': 'Aucun identifiant de session Claude Code connu pour ce nœud.', 'relaunch.reason.alive': 'Session encore ouverte : rien n\'est lancé dessus.',
+    'relaunch.reason.humanOwner': 'Sous-agent ouvert par toi : aucune session Claude Code rattachée.', 'relaunch.reason.ambiguous': 'Ce type d\'agent tourne dans plusieurs sessions : passe par le nœud de la session.',
+    'relaunch.reason.unknownOwner': 'Session propriétaire introuvable.', 'relaunch.reason.tool': 'Un outil n\'est pas une session Claude Code.', 'relaunch.reason.you': '« Toi » n\'est pas une session Claude Code.',
+    'relaunch.reason.events': '« Événements » n\'est pas une session Claude Code.', 'relaunch.reason.quota': 'Les quotas ne sont pas une session Claude Code.', 'relaunch.reason.unknown': 'Nœud inconnu : aucune session Claude Code.',
+    'relaunch.reason.recent': 'Transcrit modifié il y a moins d\'une minute : la session est peut-être utilisée ailleurs.', 'relaunch.reason.running': 'Une exécution est déjà en cours pour cette session.',
+    'relaunch.reason.cmd': 'claude est un script .cmd, refusé (aucun shell). Indique le fichier .exe avec claudePath dans config.json.', 'relaunch.reason.missing': 'Binaire claude introuvable. Réglage : claudePath dans config.json, ou ORCH_DASHBOARD_CLAUDE.',
     'map.title': 'Carte en direct', 'map.reset': 'Disposition automatique', 'map.resetTip': 'Remet chaque bulle à sa place d\'origine', 'map.aria': 'Carte en direct de l\'orchestrateur',
     'map.count': (p) => `${p.s} session${s_(p.s)} active${s_(p.s)} · ${p.a} sous-agent${s_(p.a)} en cours${p.l ? ` · ${p.l} lien${s_(p.l)} actif${s_(p.l)}` : ''}`,
     'lg.run': 'travaille', 'lg.wait': 'en attente / en pause', 'lg.silent': 'silencieux (rien depuis 15 min)', 'lg.bad': 'bloqué, échec ou outil refusé', 'lg.idle': 'au repos',
@@ -61,7 +70,7 @@ const DICT = {
     'm.youTip': 'Consignes non lues : {i}\nActions à faire : {t}',
     'm.quota': 'Quotas', 'm.quotaSub': 'fenêtre la plus utilisée', 'm.agoMin': 'il y a {n} min', 'm.noQuota': 'pas de relevé',
     'm.feedSub': 'événements', 'm.launch': 'lance {x}', 'm.start': 'démarre {x}', 'm.report': 'rapport', 'm.quotas': 'quotas',
-    'd.close': 'Fermer ✕', 'd.installed': 'agent installé', 'd.auto': 'créé automatiquement', 'd.fixed': 'modèle fixé : {m}', 'd.inherit': 'modèle hérité de la session qui le lance',
+    'd.close': 'Fermer ✕', 'd.dialog': 'Détail de {n}', 'd.installed': 'agent installé', 'd.auto': 'créé automatiquement', 'd.fixed': 'modèle fixé : {m}', 'd.inherit': 'modèle hérité de la session qui le lance',
     'd.state': 'État', 'd.model': 'Modèle', 'd.task': 'Tâche', 'd.by': 'Lancé par', 'd.lastTool': 'Dernier outil', 'd.activity': 'Activité', 'd.unknown': 'inconnu', 'd.asked': 'demandé : {a}',
     'd.refused': '⛔ outil refusé : ', 'd.refusedShort': ' ⛔ refusé', 'd.noInst': 'Aucune instance dans les 30 dernières minutes ({n} en 6 h).', 'd.notRun': 'Pas lancé ces 6 dernières heures.',
     'd.phase': 'Phase {p}', 'd.mode': 'mode {m}', 'd.inprog': 'en cours : {x}', 'd.waits': 'attend : {x}', 'd.blocked': 'bloquée : {x}', 'd.subs': '{n} sous-agent(s) en 6 h',
@@ -74,14 +83,13 @@ const DICT = {
   en: {
     'app': 'Orchestrator', 'doc.title': '{project} · orchestrator', 'project': 'Project', 'lang.switch': 'Français',
     'conn.wait': 'connecting…', 'conn.live': 'live', 'conn.lost': 'disconnected — reconnecting…', 'updated': 'last change {ago}',
-    'footer.ro': 'Read-only (except the steps\' "Open folder" / "Show in file explorer") · data from', 'footer.rt': 'updated in real time',
+    'footer.ro': 'Read-only (except the steps\' "Open folder" / "Show in file explorer", the confirmed relaunch of a blocked session, and the confirmed message sent to a session) · data from', 'footer.rt': 'updated in real time',
     'proj.todo': (p) => `${p.n} to do`, 'proj.missing': 'folder not found', 'proj.others': 'Human actions waiting in the other projects',
     'run.frozen': 'EMERGENCY FREEZE', 'run.paused': 'paused', 'run.idle': 'idle', 'run.error': 'error', 'run.active': (p) => `active · ${p.n} session${s_(p.n)}`,
     'err.read': 'Read error', 'err.missingDir': 'Project folder not found: {dir}', 'err.noAdapter': 'No known orchestrator in {dir}.',
     'err.noProject': 'No project registered. Run "node server.cjs start <project folder>" (see FORMAT.md).',
     'json.unreadable.t': 'Unreadable file', 'json.unreadable': 'The file {file} is missing or is not valid JSON.', 'json.task': 'Action',
-    'human.title': 'Your turn', 'human.hint': 'one step at a time · "Done" moves to the next one',
-    'human.count': (p) => `${p.todo} task${s_(p.todo)} to do${p.done ? ` · ${p.done} done` : ''}`,
+    'blk.noNode': 'no node', 'blk.here': 'to do here', 'blk.unknown': 'attached to "{id}", not found', 'blk.hidden': 'attached to "{id}", not shown on the map',
     'hkind.freeze': 'Freeze', 'hkind.pause': 'Pause', 'hkind.blocked': 'Blocked', 'hkind.item': 'Human action', 'hkind.pr': 'To review', 'hkind.pending': 'To resume', 'hkind.action': 'Action',
     'human.opened.dir': 'Folder opened in the file explorer.', 'human.opened.file': 'File selected in the file explorer.', 'human.openFail': 'Could not open: {err}',
     'human.unreachable': 'Dashboard unreachable: cannot open.', 'human.copied': 'Copied: {cmd} — paste it where shown above.', 'human.copyFail': 'Could not copy: select "{cmd}" by hand.',
@@ -92,27 +100,37 @@ const DICT = {
     'where.journalBelow': 'Dashboard: "Log" section further down this page',
     'act.open': 'Open {tool}', 'act.openFolder': 'Open folder', 'act.reveal': 'Show in file explorer', 'act.copy': 'copy', 'act.copyTitle': 'Copy the command', 'link': 'link',
     'step.openLink': 'Open this link.', 'step.openPlace': 'Open {place}.', 'step.runCmd': 'Run this command.',
-    'human.nothing': 'Nothing left to do for now. A new card will show up here as soon as the orchestrator needs you.',
+    'human.nothing': 'Nothing left to do for now. A new action will show up here as soon as the orchestrator needs you.',
     'human.taskOf': 'Task {i} / {n} · ', 'human.stepOf': 'step {i} / {n}', 'human.step': 'Step {i}', 'human.prev': '← Previous step', 'human.done': 'Done ✓', 'human.next': 'Done ✓ · next step →',
     'human.finished': '✓ "{title}" done.', 'human.then': 'Next:', 'human.doneHere': 'Done here:', 'human.doNow': 'Handle this task now', 'human.review': 'Review its steps',
-    'alert.inbox.t': 'Instructions', 'alert.inbox': (p) => `${p.n} instruction${s_(p.n)} not yet read by the orchestrator.`,
-    'phase.n': 'Phase {i}',
     'status.running': 'running', 'status.starting': 'starting', 'status.waiting': 'waiting', 'status.blocked': 'blocked', 'status.paused': 'paused', 'status.done': 'done',
     'status.handed-off': 'handed off', 'status.idle': 'idle', 'status.failed': 'failed', 'status.unknown': 'unknown',
     'kind.phase': 'phase', 'kind.item': 'work item', 'kind.annex': 'side task', 'kind.workflow': 'workflow', 'kind.other': 'session', 'kind.human': 'your session',
-    'sess.title': 'Sessions', 'sess.hint': 'click = filter the activity', 'sess.count': (p) => `${p.live} alive / ${p.n}`, 'sess.empty': 'No session yet.',
-    'sess.stopped': 'stopped', 'sess.alive': 'alive', 'sess.opening': 'opening…', 'sess.phase': 'phase ', 'sess.mode': 'mode ', 'sess.inprog': 'in progress: ', 'sess.waits': 'waiting for: ',
-    'sess.upd': 'updated {ago}', 'sess.opened': 'opened {ago}',
-    'act.title': 'Live activity', 'act.all': 'All', 'act.human': 'you', 'act.newSession': 'new session', 'act.blocked': '⛔ blocked: ', 'act.none': 'Nothing for this session.',
-    'act.empty': 'No activity yet. Every tool the orchestrator uses shows up here.',
+    'sess.phase': 'phase ', 'sess.waits': 'waiting for: ',
     'q.title': 'Usage', 'q.now': 'read just now', 'q.ago': 'read {n} min ago', 'q.old': ' (old)', 'q.reset': ' · resets {d}', 'q.empty': 'No usage reading.',
     'usage.fiveHour': '5-hour window', 'usage.sevenDay': 'Week (all models)', 'usage.model': 'Week {m}', 'usage.tip.band': 'Reading from the Claude Code usage-band mod (refreshed every 1 to 3 min while a session is open)',
-    'wf.title': 'Workflows', 'wf.tasks': (p) => `${p.n} task${s_(p.n)}`, 'wf.parallel': ' · {n} in parallel', 'wf.after': 'after {x}', 'wf.empty': 'No workflow started.',
-    'wf.result': (p) => `Result: ${p.n} report${s_(p.n)}${p.s ? `, ${p.s} skipped` : ''}`,
     'j.title': 'Log', 'j.count': 'last {n} lines', 'j.empty': 'Empty log.',
-    'inbox.title': 'Pending instructions', 'inbox.empty': 'No pending instructions.',
+    'inbox.empty': 'No pending instructions.',
     'feed.title': 'Events', 'feed.empty': 'Nothing yet.',
     'ago.at': 'at {t}', 'ago.s': '{n} s ago', 'ago.m': '{n} min ago', 'ago.h': '{h} h {m} ago', 'short.s': '{n} s', 'short.m': '{n} min', 'short.h': '{h} h {m}',
+    'msg.btn': 'Write to the session', 'msg.tip': 'Sends a message to this session with "claude --resume", after your confirmation.', 'msg.label': 'Your message (plain text, 4000 characters at most; 8 KB at most)',
+    'msg.check': 'Review the message', 'msg.title': 'Send this message to the session?', 'msg.send': 'Send the message', 'msg.cancel': 'Cancel', 'msg.len': 'Length: {n} characters',
+    'msg.byAgent': 'The message will be prefixed with: "For the agent {a}: ".', 'msg.byWorkflow': 'The message will be prefixed with: "For the workflow {w}: ".',
+    'msg.note': 'The text goes through standard input, without a shell, and is not logged. Approval requests are refused. The project\'s hooks and MCP servers run (no --bare). Nothing is sent without this confirmation.',
+    'msg.sent': 'Message sent to the session. Its reply is not shown here.', 'msg.empty': 'Write a message before reviewing it.', 'msg.tooLong': 'Message too long: 4000 characters at most, and 8 KB at most in bytes (about 2700 CJK characters or emoji).',
+    'msg.err': 'Sending refused (error {code}).', 'msg.reason.alive': 'Session still open: you cannot write to an open session.',
+    'relaunch.btn': 'Relaunch the session', 'relaunch.tip': 'Resumes this session with "claude --resume", after your confirmation.', 'relaunch.title': 'Relaunch this session?',
+    'relaunch.confirm': 'Confirm relaunch', 'relaunch.cancel': 'Cancel', 'relaunch.project': 'Project', 'relaunch.session': 'Session', 'relaunch.dir': 'Folder', 'relaunch.cmd': 'Command',
+    'relaunch.note': 'The resume message is fixed and goes through standard input. Approval requests are refused. Nothing starts without this confirmation.',
+    'relaunch.started': 'Relaunch requested: its status shows below.', 'relaunch.err': 'Relaunch refused (error {code}).',
+    'relaunch.state.running': 'Started, running', 'relaunch.state.done': 'Finished (exit code 0)', 'relaunch.state.failed': 'Failed: {why}',
+    'relaunch.why.exit': 'exit code {code}', 'relaunch.why.signal': 'interrupted', 'relaunch.why.timeout': 'timed out after 10 min', 'relaunch.why.spawn': 'could not start',
+    'relaunch.reason.noSession': 'No known Claude Code session id for this node.', 'relaunch.reason.alive': 'Session still open: nothing is run on it.',
+    'relaunch.reason.humanOwner': 'Sub-agent opened by you: no Claude Code session attached.', 'relaunch.reason.ambiguous': 'This agent type runs in several sessions: use the session node.',
+    'relaunch.reason.unknownOwner': 'Owning session not found.', 'relaunch.reason.tool': 'A tool is not a Claude Code session.', 'relaunch.reason.you': '"You" is not a Claude Code session.',
+    'relaunch.reason.events': '"Events" is not a Claude Code session.', 'relaunch.reason.quota': 'Quotas are not a Claude Code session.', 'relaunch.reason.unknown': 'Unknown node: no Claude Code session.',
+    'relaunch.reason.recent': 'Transcript changed less than a minute ago: the session may be in use elsewhere.', 'relaunch.reason.running': 'A run is already in progress for this session.',
+    'relaunch.reason.cmd': 'claude is a .cmd script, refused (no shell). Give the .exe file with claudePath in config.json.', 'relaunch.reason.missing': 'claude binary not found. Setting: claudePath in config.json, or ORCH_DASHBOARD_CLAUDE.',
     'map.title': 'Live map', 'map.reset': 'Auto layout', 'map.resetTip': 'Put every bubble back in its original place', 'map.aria': 'Live map of the orchestrator',
     'map.count': (p) => `${p.s} active session${s_(p.s)} · ${p.a} sub-agent${s_(p.a)} running${p.l ? ` · ${p.l} active link${s_(p.l)}` : ''}`,
     'lg.run': 'working', 'lg.wait': 'waiting / paused', 'lg.silent': 'silent (nothing for 15 min)', 'lg.bad': 'blocked, failed or tool refused', 'lg.idle': 'idle',
@@ -129,7 +147,7 @@ const DICT = {
     'm.youTip': 'Unread instructions: {i}\nActions to do: {t}',
     'm.quota': 'Usage', 'm.quotaSub': 'most used window', 'm.agoMin': '{n} min ago', 'm.noQuota': 'no reading',
     'm.feedSub': 'events', 'm.launch': 'starts {x}', 'm.start': 'starting {x}', 'm.report': 'report', 'm.quotas': 'usage',
-    'd.close': 'Close ✕', 'd.installed': 'installed agent', 'd.auto': 'created automatically', 'd.fixed': 'fixed model: {m}', 'd.inherit': 'model inherited from the session that starts it',
+    'd.close': 'Close ✕', 'd.dialog': 'Details of {n}', 'd.installed': 'installed agent', 'd.auto': 'created automatically', 'd.fixed': 'fixed model: {m}', 'd.inherit': 'model inherited from the session that starts it',
     'd.state': 'State', 'd.model': 'Model', 'd.task': 'Task', 'd.by': 'Started by', 'd.lastTool': 'Last tool', 'd.activity': 'Activity', 'd.unknown': 'unknown', 'd.asked': 'requested: {a}',
     'd.refused': '⛔ tool refused: ', 'd.refusedShort': ' ⛔ refused', 'd.noInst': 'No instance in the last 30 minutes ({n} in 6 h).', 'd.notRun': 'Not run in the last 6 hours.',
     'd.phase': 'Phase {p}', 'd.mode': 'mode {m}', 'd.inprog': 'in progress: {x}', 'd.waits': 'waiting for: {x}', 'd.blocked': 'blocked: {x}', 'd.subs': '{n} sub-agent(s) in 6 h',
@@ -209,19 +227,20 @@ const hhmmss = (s) => { const m = String(s).match(/(\d{2}:\d{2}:\d{2})/); return
 const sessName = (id) => { const s = (snap.sessions || []).find((x) => x.id === id); return s ? tr(s.name) : id || ''; };
 
 // état de la vue (remis à zéro à chaque changement de projet)
-let snap = null, filterKey = null, seenEv = new Set(), firstRender = true;
+let snap = null;
 let projects = [], projectId = new URLSearchParams(location.search).get('p') || '';
 let lastTasks = [];
 
 function render() {
   if (!snap) return;
   document.documentElement.lang = lang;
-  if (snap.error) {
+  // erreur de lecture : erreur de l'instantané, ou fichier illisible (run.state « error » et alertes « bad » de l'adaptateur)
+  if (snap.error || (snap.run && snap.run.state === 'error')) {
     const name = snap.project ? tr(snap.project.name) : '';
     $('title').textContent = name ? `${t('app')} · ${name}` : t('app');
-    fill($('alerts'), h('div', { class: 'alert bad' }, h('b', null, t('err.read')), tr(snap.error)));
-    for (const id of ['humanCard']) $(id).hidden = true;
-    fill($('stepper')); $('run').className = 'badge bad'; fill($('run'), h('span', { class: 'dot' }), t('run.error'));
+    const errs = snap.error ? [tr(snap.error)] : (snap.alerts || []).filter((a) => a && a.tone === 'bad').map((a) => [tr(a.title), tr(a.text)].filter(Boolean).join(' · '));
+    fill($('alerts'), errs.map((e) => h('div', { class: 'alert bad' }, h('b', null, t('err.read')), e)));
+    $('run').className = 'badge bad'; fill($('run'), h('span', { class: 'dot' }), t('run.error'));
     return;
   }
   const name = tr(snap.project.name);
@@ -230,8 +249,9 @@ function render() {
   fill($('badges'), [...(snap.orchestrator || snap.adapterName ? [{ text: snap.orchestrator || snap.adapterName, tone: 'accent', title: true }] : []), ...(snap.project.badges || [])]
     .map((b) => h('span', { class: `badge ${b.tone || ''}`, title: b.title ? t('app') : null }, tr(b.text))));
   $('mainDir').textContent = snap.project.dir || '';
-  renderRun(); renderAlerts(); renderStepper(); renderDiagrams(); renderSessions(); renderActivity(); renderQuotas(); renderWorkflows(); renderJournal(); renderInbox(); renderFeed();
-  firstRender = false;
+  // le bandeau d'alertes ne sert qu'aux erreurs de lecture (branche ci-dessus)
+  fill($('alerts'));
+  renderRun(); renderDiagrams(); renderQuotas(); renderJournal();
 }
 // textes fixes de la page (au chargement et au changement de langue)
 function renderStatic() {
@@ -266,7 +286,7 @@ function renderRun() {
   else { fill(el, h('span', { class: 'dot' }), txt || t('run.idle')); el.className = 'badge'; }
 }
 
-// --- à toi d'agir : chaque blocage humain en étapes, montrées une par une ---
+// --- blocages : chaque tâche est rattachée à son nœud ; le détail du nœud la montre en étapes, une par une ---
 // L'étape courante de chaque tâche est gardée hors du DOM (les instantanés reconstruisent la page) et dans
 // localStorage, par projet ; elle repart de la première étape si les étapes de la tâche changent.
 const STEP_KEY = 'orch-human-steps';
@@ -283,7 +303,7 @@ function progressOf(x) {
   p.idx = Math.max(0, Math.min(p.idx, x.steps.length - 1));
   return p;
 }
-function setProgress(x, p) { stepState[pkey(x.id)] = p; saveSteps(); renderHuman(); }
+function setProgress(x, p) { stepState[pkey(x.id)] = p; saveSteps(); renderMapDetail(true); }
 const safeHref = (u) => (typeof u === 'string' && /^[a-z][a-z0-9+.-]*:/i.test(u) && !/^\s*(javascript|data|vbscript|file|blob):/i.test(u) ? u : null);
 // texte d'étape : liens web et #id rendus cliquables (createElement uniquement)
 function richText(text, refs) {
@@ -309,7 +329,7 @@ async function openLocal(x, ref) {
     const j = await r.json().catch(() => ({}));
     stepNotes.set(x.id, r.ok ? { text: t(j.dir ? 'human.opened.dir' : 'human.opened.file'), cls: 'ok' } : { text: t('human.openFail', { err: j.error || r.status }), cls: 'bad' });
   } catch (e) { stepNotes.set(x.id, { text: t('human.unreachable'), cls: 'bad' }); }
-  renderHuman(true);
+  renderMapDetail(true);
 }
 async function copyCmd(x, cmd) {
   let ok = false;
@@ -317,7 +337,7 @@ async function copyCmd(x, cmd) {
     try { const ta = h('textarea', null, cmd); document.body.append(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch {}
   }
   stepNotes.set(x.id, ok ? { text: t('human.copied', { cmd }), cls: 'ok' } : { text: t('human.copyFail', { cmd }), cls: 'bad' });
-  renderHuman(true);
+  renderMapDetail(true);
 }
 function toolName(u) {
   const host = hostOf(u);
@@ -358,28 +378,26 @@ function stepActions(x, s) {
   if (s.cmd) a.push(h('button', { class: `hbtn${s.url || s.open ? '' : ' primary'}`, title: t('act.copyTitle'), onclick: () => copyCmd(x, s.cmd) }, h('code', null, s.cmd), ` ⧉ ${t('act.copy')}`));
   return a;
 }
-// une seule étape affichée à la fois, toutes tâches confondues : la tâche en cours (choisie, sinon la première
-// pas encore faite) et son étape courante ; « Terminé » passe à l'étape suivante, puis à la tâche suivante
-const CUR_KEY = () => `${snap.projectId}|__current`;
-let humanSig = '';
-let lastDone = null; // { title, text } : tâche que l'humain vient de terminer
-function renderHuman(force) {
-  // tâches absentes (lecture en échec côté serveur) : les dernières connues restent affichées
-  const tasks = Array.isArray(snap.tasks) ? (lastTasks = snap.tasks) : lastTasks;
-  const todo = tasks.filter((x) => !progressOf(x).done);
-  const done = tasks.filter((x) => progressOf(x).done);
-  const cur = todo.find((x) => x.id === stepState[CUR_KEY()]) || todo[0] || null;
-  // la tâche affichée reste la même tant qu'elle n'est pas finie, même si une nouvelle tâche arrive avant elle
-  if (cur && stepState[CUR_KEY()] !== cur.id) { stepState[CUR_KEY()] = cur.id; saveSteps(); }
-  // reconstruit seulement si quelque chose a changé (un instantané arrive chaque seconde : un clic ne doit pas se perdre)
-  const sig = JSON.stringify([lang, snap.projectId, tasks, tasks.map((x) => progressOf(x)), cur && cur.id, [...stepNotes], lastDone]);
-  if (sig === humanSig && !force) return;
-  humanSig = sig;
-  $('humanCard').hidden = !tasks.length;
-  $('humanCount').textContent = tasks.length ? t('human.count', { todo: todo.length, done: done.length }) : '';
-  const select = (x) => { stepState[CUR_KEY()] = x.id; lastDone = null; saveSteps(); renderHuman(); };
+// Une seule étape affichée à la fois par nœud : la tâche choisie (sinon la première pas encore faite) et son étape
+// courante ; « Terminé » passe à l'étape suivante, puis à la tâche suivante du même nœud. La tâche affichée est gardée
+// en mémoire de la page (curByNode), pas dans localStorage.
+const WHY = new WeakMap(); // tâche -> { reason, ref } : rattachement décidé par buildMap
+let mapBlocks = new Map(); // id de nœud (ou « in:human ») -> tâches rattachées, faites ou non
+const curByNode = new Map(); // id de nœud -> id de la tâche affichée
+let lastDone = null, lastDoneNode = null; // { title, text } : tâche que l'humain vient de terminer, sur ce nœud
+let blkCache = { sig: '', el: null }; // le bloc d'étapes n'est reconstruit que si son contenu change (garde du clic)
+function blocksPanel(node, list) {
+  const todo = list.filter((x) => !progressOf(x).done);
+  const done = list.filter((x) => progressOf(x).done);
+  const cur = todo.find((x) => x.id === curByNode.get(node)) || todo[0] || null;
+  if (cur) curByNode.set(node, cur.id); else curByNode.delete(node);
   const out = [];
-  if (lastDone) out.push(h('div', { class: 'hnote ok hdone' }, t('human.finished', { title: lastDone.title }), lastDone.text ? ` ${lastDone.text}` : ''));
+  if (lastDone && lastDoneNode === node) out.push(h('div', { class: 'hnote ok hdone' }, t('human.finished', { title: lastDone.title }), lastDone.text ? ` ${lastDone.text}` : ''));
+  // blocages sans nœud affiché ou identifiant introuvable : la raison est dite, la tâche reste visible
+  for (const x of todo) {
+    const w = WHY.get(x);
+    if (w && (w.reason === 'unknown' || w.reason === 'hidden')) out.push(h('div', { class: 'hnote warn' }, `${tr(x.title)} — `, t(w.reason === 'unknown' ? 'blk.unknown' : 'blk.hidden', { id: w.ref })));
+  }
   if (!cur) {
     out.push(h('div', { class: 'htask' }, h('div', { class: 'hstep' }, h('div', { class: 'num ok' }, '✓'), h('div', { class: 'txt' }, t('human.nothing')))));
   } else {
@@ -391,11 +409,11 @@ function renderHuman(force) {
     const finish = () => {
       stepNotes.delete(x.id);
       if (!last) { lastDone = null; setProgress(x, { ...p, idx: p.idx + 1 }); return; }
-      lastDone = { title: tr(x.title), text: tr(x.doneText) };
+      lastDone = { title: tr(x.title), text: tr(x.doneText) }; lastDoneNode = node;
       stepState[pkey(x.id)] = { ...p, done: true };
-      const next = todo.find((y) => y.id !== x.id);
-      if (next) stepState[CUR_KEY()] = next.id; else delete stepState[CUR_KEY()];
-      saveSteps(); renderHuman();
+      const next = todo.find((y) => y !== x);
+      if (next) curByNode.set(node, next.id); else curByNode.delete(node);
+      saveSteps(); renderMapDetail(true);
     };
     out.push(h('div', { class: 'htask' },
       h('div', { class: 'hh' }, h('span', { class: `badge ${kc}` }, kl),
@@ -412,112 +430,21 @@ function renderHuman(force) {
         h('span', { class: 'sp' }),
         h('button', { class: 'hbtn ok big', onclick: finish }, t(last ? 'human.done' : 'human.next')))));
   }
-  // les autres tâches : leur titre seulement (une seule étape reste affichée) ; clic = la traiter maintenant
+  // les autres tâches du nœud : leur titre seulement ; clic = la traiter maintenant
+  const select = (x) => { curByNode.set(node, x.id); lastDone = null; renderMapDetail(true); };
   const others = todo.filter((x) => x !== cur);
   if (others.length) out.push(h('div', { class: 'hnext' }, h('span', { class: 'muted' }, t('human.then')),
     others.map((x) => h('button', { class: 'chipbtn', title: t('human.doNow'), onclick: () => select(x) }, tr(x.title)))));
   if (done.length) out.push(h('div', { class: 'hnext' }, h('span', { class: 'muted' }, t('human.doneHere')),
     done.map((x) => h('button', { class: 'chipbtn done', title: t('human.review'), onclick: () => { stepState[pkey(x.id)] = { sig: tsig(x), idx: 0, done: false }; select(x); } }, `✓ ${tr(x.title)}`))));
-  fill($('human'), out);
+  return h('div', { class: 'hblocks' }, out);
 }
-
-function renderAlerts() {
-  renderHuman();
-  const a = [];
-  for (const x of snap.alerts || []) a.push(h('div', { class: `alert ${x.tone || 'info'}` }, x.title ? h('b', null, tr(x.title)) : null, tr(x.text)));
-  const n = ((snap.inbox || {}).items || []).length;
-  if (n) a.push(h('div', { class: 'alert info' }, h('b', null, tr(snap.inbox.title) || t('alert.inbox.t')), t('alert.inbox', { n })));
-  fill($('alerts'), a);
-}
-
-function renderStepper() {
-  const ph = snap.phases;
-  const el = $('stepper');
-  if (!ph || !Array.isArray(ph.list) || !ph.list.length) { el.hidden = true; fill(el); return; }
-  el.hidden = false;
-  el.style.setProperty('--n', String(ph.list.length));
-  const live = new Set(ph.live || []), skip = new Set(ph.skipped || []);
-  fill(el, ph.list.map((l, i) => {
-    const label = tr(l);
-    const cls = ['step', skip.has(i) ? 'skip' : live.has(i) ? 'live' : i < ph.reached ? 'done' : i === ph.reached && !live.size ? 'live' : ''].join(' ');
-    return h('div', { class: cls, title: label }, h('div', { class: 'n' }, t('phase.n', { i })), h('div', { class: 'l' }, label));
-  }));
-}
-
-function sessionRow(s, child) {
-  const status = s.status || '';
-  let dotCls = 'c-muted', dotLive = false, aliveTxt = t('sess.stopped');
-  if (s.alive) { dotCls = status === 'blocked' ? 'c-bad' : status === 'waiting' ? 'c-warn' : 'c-ok'; dotLive = true; aliveTxt = s.attached === false ? t('sess.opening') : t('sess.alive'); }
-  else if (status === 'blocked') { dotCls = 'c-bad'; }
-  const meta = [];
-  if (s.phase) meta.push(h('span', null, t('sess.phase'), h('b', null, s.phase)));
-  if (s.mode) meta.push(h('span', null, t('sess.mode'), s.mode));
-  if ((s.inProgress || []).length) meta.push(h('span', null, t('sess.inprog'), s.inProgress.join(', ')));
-  if (s.waitingFor) meta.push(h('span', { class: 'c-warn' }, t('sess.waits'), s.waitingFor));
-  if (s.blockedReason && status === 'blocked') meta.push(h('span', { class: 'c-bad' }, s.blockedReason));
-  if (s.handedOffTo && status === 'handed-off') meta.push(h('span', null, '→ ', s.handedOffTo));
-  const upd = parseTs(s.updated);
-  meta.push(h('span', null, upd ? t('sess.upd', { ago: ago(upd) }) : s.started ? t('sess.opened', { ago: ago(parseTs(s.started)) }) : ''));
-  if (s.host) meta.push(h('span', { class: 'mono' }, s.host));
-  if (s.dirLabel && !s.isMain && (snap.project.dirs || []).length > 1) meta.push(h('span', null, '📁 ', s.dirLabel));
-  const name = tr(s.name);
-  return h('div', {
-    class: `sess${child ? ' child' : ''}${filterKey === s.id ? ' sel' : ''}`, title: s.note || '',
-    onclick: () => { filterKey = filterKey === s.id ? null : s.id; renderSessions(); renderActivity(); },
-  },
-  h('div', { class: 'top' },
-    h('span', { class: `dot ${dotCls}${dotLive ? ' live' : ''}`, title: aliveTxt }),
-    h('span', { class: 'kind' }, kindTxt(s)),
-    h('span', { class: 'name' }, name),
-    s.id !== name && !s.human ? h('span', { class: 'chip' }, s.id) : null,
-    status ? statusBadge(status) : null,
-    h('span', { class: 'muted', style: 'font-size:12px' }, aliveTxt)),
-  h('div', { class: 'meta' }, meta));
-}
-
-function renderSessions() {
-  const all = snap.sessions || [];
-  const rows = [];
-  for (const s of all.filter((x) => x.human)) rows.push(sessionRow(s, false));
-  const rest = all.filter((x) => !x.human);
-  const ids = new Set(rest.map((s) => s.id));
-  const order = (a, b) => (b.alive - a.alive) || String(b.started).localeCompare(String(a.started));
-  const kids = (id) => rest.filter((s) => s.parent === id).sort(order);
-  const walk = (s, depth) => { rows.push(sessionRow(s, depth > 0)); if (depth < 4) for (const c of kids(s.id)) walk(c, depth + 1); };
-  for (const r of rest.filter((s) => !s.parent || !ids.has(s.parent)).sort(order)) walk(r, 0);
-  const live = rest.filter((s) => s.alive).length;
-  $('sessCount').textContent = t('sess.count', { live, n: rest.length });
-  fill($('sessions'), rows.length ? rows : h('div', { class: 'empty' }, tr((snap.hints || {}).sessions) || t('sess.empty')));
-}
-
-function renderActivity() {
-  const all = snap.activity || [];
-  const items = !filterKey ? all : all.filter((e) => e.session === filterKey || (filterKey.startsWith('human') && e.session === 'human'));
-  const clear = () => { filterKey = null; renderSessions(); renderActivity(); };
-  fill($('actFilter'),
-    h('button', { class: `f${filterKey ? '' : ' on'}`, onclick: clear }, t('act.all')),
-    filterKey ? h('button', { class: 'f on', onclick: clear }, `${sessName(filterKey)} ✕`) : null);
-  $('actCount').textContent = items.length ? `${items.length}` : '';
-  if (!snap.hasActivity && !all.length) {
-    fill($('activity'), h('div', { class: 'empty' }, tr((snap.hints || {}).activity) || t('act.empty')));
-    return;
-  }
-  const rows = items.slice(0, 200).map((e) => {
-    const id = `${e.ts}|${e.sid}|${e.tool}|${e.what}`;
-    const fresh = !firstRender && !seenEv.has(id);
-    const tn = e.tool === 'mcp__ccd_session__start_session' ? 'session' : e.tool;
-    const owner = (snap.sessions || []).find((s) => s.id === e.session);
-    return h('div', { class: `ev${e.blocked ? ' blocked' : ''}${fresh ? ' new' : ''}`, title: e.ts },
-      h('span', { class: 't' }, hhmmss(e.ts)),
-      h('span', { class: 'who' },
-        h('span', { class: `tool ${tn}` }, tn === 'session' ? t('act.newSession') : tn),
-        e.session === 'human' ? h('span', { class: 'chip', title: e.sid || '' }, t('act.human')) : e.session ? h('span', { class: 'chip', title: owner ? tr(owner.name) : '' }, e.session) : null,
-        e.agent ? h('span', { class: 'chip' }, e.agent) : null,
-        e.dirLabel ? h('span', { class: 'chip' }, e.dirLabel) : null),
-      h('span', { class: 'what' }, e.blocked ? t('act.blocked') : '', e.what));
-  });
-  for (const e of all) seenEv.add(`${e.ts}|${e.sid}|${e.tool}|${e.what}`);
-  fill($('activity'), rows.length ? rows : h('div', { class: 'empty' }, t('act.none')));
+// bloc d'étapes d'un nœud, réutilisé tant que rien n'a changé (un instantané arrive chaque seconde : un clic ne doit pas se perdre)
+function blocksBox(node, list, force) {
+  const sig = JSON.stringify([lang, snap.projectId, node, list.map((x) => [x, WHY.get(x) || null]), list.map((x) => progressOf(x)), curByNode.get(node) || null, [...stepNotes], lastDone, lastDoneNode]);
+  if (!force && sig === blkCache.sig && blkCache.el) return blkCache.el;
+  blkCache = { sig, el: blocksPanel(node, list) };
+  return blkCache.el;
 }
 
 function renderQuotas() {
@@ -535,38 +462,11 @@ function renderQuotas() {
   }));
 }
 
-function renderWorkflows() {
-  const w = snap.workflows || [];
-  $('wfCard').hidden = !w.length;
-  $('wfCount').textContent = w.length ? `${w.length}` : '';
-  fill($('workflows'), w.length ? w.slice(0, 12).map((x) => h('div', { class: 'wf' },
-    h('div', { class: 'top', style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' },
-      h('span', { class: `dot ${x.alive ? 'c-ok live' : x.done ? 'c-muted' : 'c-warn'}` }),
-      h('b', { class: 'mono' }, x.id),
-      x.status ? statusBadge(x.status) : null,
-      h('span', { class: 'muted', style: 'font-size:12px' }, t('wf.tasks', { n: x.tasks.length }), x.parallel ? t('wf.parallel', { n: x.parallel }) : '', x.model ? ` · ${x.model}` : '')),
-    x.done ? h('div', { class: 'muted', style: 'font-size:12.5px' }, t('wf.result', { n: x.resultCount, s: x.skipped })) : null,
-    h('div', { class: 'tasks' }, x.tasks.map((y) => h('span', { class: 'chip', title: y.after.length ? t('wf.after', { x: y.after.join(', ') }) : '' }, `${y.id} · ${y.agent || '?'}`))))) : h('div', { class: 'empty' }, t('wf.empty')));
-}
-
 function renderJournal() {
   const j = snap.journal || [];
   $('jCount').textContent = j.length ? t('j.count', { n: j.length }) : '';
   fill($('journal'), j.length ? j.map((l) => h('div', { class: 'row' }, l.dirLabel ? h('span', { class: 'chip' }, l.dirLabel) : null, l.dirLabel ? ' ' : null, l.ts && !String(tr(l.text)).replace(/(\d)T(\d)/g, '$1 $2').includes(l.ts) ? h('span', { class: 'ts' }, l.ts) : null, tr(l.text))) : h('div', { class: 'empty' }, t('j.empty')));
 }
-function renderInbox() {
-  const ib = snap.inbox || { items: [] };
-  $('inboxTitle').textContent = tr(ib.title) || t('inbox.title');
-  fill($('inbox'), ib.items.length ? ib.items.map((l) => h('div', { class: 'row' }, l.dirLabel ? h('span', { class: 'chip' }, l.dirLabel) : null, ' ', tr(l.text)))
-    : h('div', { class: 'empty' }, tr(ib.hint) || t('inbox.empty')));
-}
-function renderFeed() {
-  const f = snap.feed || { items: [] };
-  $('feedTitle').textContent = tr(f.title) || t('feed.title');
-  fill($('feed'), f.items.length ? f.items.map((l) => h('div', { class: 'row' }, l.ts ? h('span', { class: 'ts' }, l.ts) : null, l.chip ? h('span', { class: 'chip' }, tr(l.chip)) : null, ' ', tr(l.text), l.note ? h('span', { class: 'muted' }, ` · ${l.note}`) : null))
-    : h('div', { class: 'empty' }, tr((snap.hints || {}).feed) || t('feed.empty')));
-}
-
 // --- carte en direct : bulles (entrées, sessions, agents, outils) reliées par des liens animés.
 //     Bulles et liens gardés d'une mise à jour à l'autre (clé = id) pour que les animations ne redémarrent pas ---
 const NS = 'http://www.w3.org/2000/svg';
@@ -649,7 +549,7 @@ class BubbleMap {
     this.svg.append(this.gHead, this.gE, this.gN, this.gP);
     host.replaceChildren(this.svg);
     this.nodes = new Map(); this.edges = new Map(); this.hk = ''; this.fid = 0;
-    this.onPick = null; this.onMoved = null;
+    this.onPick = null; this.onMoved = null; this.onMoveNode = null;
     this.pos = new Map(); this.storeKey = null; this.drag = null; this.dragEnd = 0; this.live = 0;
   }
   // positions choisies à la main : gardées dans le navigateur, par projet
@@ -676,6 +576,7 @@ class BubbleMap {
     r.g.style.transform = `translate(${r.n.x}px, ${r.n.y}px)`;
     this.pos.set(id, { x: r.n.x, y: r.n.y });
     this.redrawEdges(id);
+    this.onMoveNode && this.onMoveNode(id);
   }
   down(ev, id) {
     if (ev.button !== 0 && ev.pointerType === 'mouse') return;
@@ -726,9 +627,10 @@ class BubbleMap {
           ic: sv('path', { class: 'ic' }), v: sv('text', { class: 'v' }), sb: sv('text', { class: 'sb' }),
           lb: sv('text', { class: 'lb' }), lb2: sv('text', { class: 'lb2' }),
           cnt: sv('g', { class: 'cnt' }), cntC: sv('circle', { r: 10 }), cntT: sv('text', { y: 3.6 }),
+          blk: sv('g', { class: 'blk' }), blkC: sv('circle', { r: 10 }), blkT: sv('text', { y: 3.6 }),
           tag: sv('g', { class: 'tag' }), tagR: sv('rect', { width: 30, height: 13, rx: 6.5, x: -15, y: -9 }), tagT: sv('text', { y: 1 }, 'AUTO') };
-        r.cnt.append(r.cntC, r.cntT); r.tag.append(r.tagR, r.tagT);
-        r.g.append(r.tip, r.halo, r.bg, r.track, r.ring, r.gauge, r.ic, r.v, r.sb, r.lb, r.lb2, r.cnt, r.tag);
+        r.cnt.append(r.cntC, r.cntT); r.blk.append(r.blkC, r.blkT); r.tag.append(r.tagR, r.tagT);
+        r.g.append(r.tip, r.halo, r.bg, r.track, r.ring, r.gauge, r.ic, r.v, r.sb, r.lb, r.lb2, r.cnt, r.blk, r.tag);
         r.g.style.transform = `translate(${n.x}px,${n.y}px)`;
         const id = n.id;
         r.g.addEventListener('pointerdown', (ev) => this.down(ev, id));
@@ -775,10 +677,12 @@ class BubbleMap {
       setText(r.lb, fit(n.label, 24)); setText(r.lb2, fit(n.label2 || '', 26));
       if (n.count > 1) { r.cnt.style.display = ''; setAttr(r.cnt, 'transform', `translate(${(R * 0.72).toFixed(1)} ${(-R * 0.72).toFixed(1)})`); setText(r.cntT, `${n.count}`); }
       else r.cnt.style.display = 'none';
+      if (n.blocks) { r.blk.style.display = ''; setAttr(r.blk, 'transform', `translate(${(R * 0.72).toFixed(1)} ${(R * 0.72).toFixed(1)})`); setVar(r.blk, '--bc', n.blocks.color); setText(r.blkT, `${n.blocks.n}`); }
+      else r.blk.style.display = 'none';
       if (n.auto) { r.tag.style.display = ''; setAttr(r.tag, 'transform', `translate(${(-R * 0.72).toFixed(1)} ${(-R * 0.72).toFixed(1)})`); }
       else r.tag.style.display = 'none';
       setText(r.tip, (n.tip || [n.label, n.value, n.sub].filter(Boolean).join('\n')) + '\n' + t('map.drag'));
-      setAttr(r.g, 'aria-label', `${n.label} : ${[n.value, n.sub].filter(Boolean).join(', ')}`);
+      setAttr(r.g, 'aria-label', `${n.label} : ${[n.value, n.sub, n.blocks ? `${t('m.nActions', { n: n.blocks.n })} ${t('blk.here')}` : ''].filter(Boolean).join(', ')}`);
     }
     for (const [id, r] of this.nodes) if (!seen.has(id)) { r.g.remove(); this.nodes.delete(id); }
     const eseen = new Set();
@@ -900,6 +804,8 @@ const shortPhase = (p) => { const m = String(p || '').match(/^(\d+)/); return m 
 function buildMap() {
   const now = Date.now();
   const nodes = [], edges = [];
+  if (Array.isArray(snap.tasks)) lastTasks = snap.tasks; // tâches absentes (lecture en échec) : les dernières connues
+  mapBlocks = new Map();
   const info = new Map(); // id -> données du panneau de détail
   const TOOLS = toolsOf();
   const TIDS = new Set(TOOLS.map((x) => x.id));
@@ -1051,11 +957,32 @@ function buildMap() {
   for (const [id, l] of links) edges.push({ id, from: l.owner, to: `t:${l.k}`, on: l.age < LIVE_EDGE, rate: l.rate, color: toolColor(l.k) });
 
   // ---- entrées : toi (consignes, actions à faire), quotas, événements ----
-  const inbox = ((snap.inbox || {}).items || []).length, todo = (lastTasks || []).filter((x) => !progressOf(x).done).length;
+  // ---- blocages (tâches) : rattachés à leur nœud par le serveur (x.attach) ; sans nœud affiché, ils restent sur « Toi » ----
+  const drawn = new Set([...sessNodes, ...agentNodes].map((n) => n.id).filter((k) => k !== 's:+' && k !== 'a:+'));
+  const freeTasks = [];
+  for (const x of lastTasks) {
+    const at = x.attach || {}, ref = at.ref || '';
+    const reason = at.node && drawn.has(at.node) ? 'node' : at.node ? 'hidden' : at.reason || 'none';
+    WHY.set(x, { reason, ref });
+    if (reason === 'node') mapBlocks.set(at.node, [...(mapBlocks.get(at.node) || []), x]);
+    else freeTasks.push(x);
+  }
+  // badge du nœud : nombre de blocages à faire, couleur du plus grave (bad > warn > info)
+  const RANK = { bad: 3, warn: 2, info: 1 }, toneOf = (x) => x.tone || HTONE[x.kind] || 'warn';
+  for (const n of [...sessNodes, ...agentNodes]) {
+    const list = (mapBlocks.get(n.id) || []).filter((x) => !progressOf(x).done);
+    if (!list.length) continue;
+    const top = list.reduce((a, x) => ((RANK[toneOf(x)] || 0) > (RANK[toneOf(a)] || 0) ? x : a));
+    n.blocks = { n: list.length, color: `var(--${RANK[toneOf(top)] ? toneOf(top) : 'warn'})` };
+    n.tip = `${n.tip}
+${t('m.nActions', { n: list.length })} · ${t('blk.here')}`;
+  }
+  mapBlocks.set('in:human', freeTasks);
+  const inbox = ((snap.inbox || {}).items || []).length, freeTodo = freeTasks.filter((x) => !progressOf(x).done).length;
   info.set('in:human', { type: 'human' });
-  const inNodes = [{ id: 'in:human', r: 36, icon: 'inbox', iconColor: 'var(--accent)', value: todo ? t('m.nActions', { n: todo }) : inbox ? t('m.nInbox', { n: inbox }) : '—',
-    sub: todo ? t('m.todo') : inbox ? t('m.inbox') : t('m.nothing'), subColor: todo ? 'var(--warn)' : '', label: t('m.you'), label2: t('m.youSub'),
-    state: inbox || todo ? 'wait' : 'idle', ring: inbox ? 'var(--accent)' : '', tip: t('m.youTip', { i: inbox, t: todo }) }];
+  const inNodes = [{ id: 'in:human', r: 36, icon: 'inbox', iconColor: 'var(--accent)', value: freeTodo ? t('m.nActions', { n: freeTodo }) : inbox ? t('m.nInbox', { n: inbox }) : '—',
+    sub: freeTodo ? t('blk.noNode') : inbox ? t('m.inbox') : t('m.nothing'), subColor: freeTodo ? 'var(--warn)' : '', label: t('m.you'), label2: t('m.youSub'),
+    state: inbox || freeTodo ? 'wait' : 'idle', ring: inbox ? 'var(--accent)' : '', tip: t('m.youTip', { i: inbox, t: freeTodo }) }];
   const u = snap.usage;
   const q = u && u.windows && u.windows.length ? Math.max(...u.windows.map((w) => w.percent)) : null;
   info.set('in:quota', { type: 'quota' });
@@ -1145,6 +1072,11 @@ function renderMap(withDetail = true) {
     bubbleMap.onPick = (id) => { mapSel = mapSel === id ? null : id; renderMap(); };
     bubbleMap.onMoved = () => { $('mapReset').hidden = !bubbleMap.pos.size; };
     $('mapReset').addEventListener('click', () => { bubbleMap.resetPositions(); renderMap(false); });
+    // la fenêtre de détail suit le nœud : glisser, défilement horizontal de la carte, redimensionnement
+    bubbleMap.onMoveNode = () => placeMapDetail();
+    $('map').addEventListener('scroll', () => placeMapDetail(), { passive: true });
+    window.addEventListener('resize', () => placeMapDetail());
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && mapSel && !$('mapDetail').hidden) closeMapDetail(true); });
   }
   bubbleMap.usePositions(`orch-map-pos:${snap.project.dir || snap.projectId}`);
   $('mapReset').hidden = !bubbleMap.pos.size;
@@ -1161,24 +1093,229 @@ function renderMap(withDetail = true) {
   const ck = chips.map((c) => c.textContent).join('|');
   if (ck !== $('mapModels').dataset.k) { $('mapModels').dataset.k = ck; fill($('mapModels'), chips); }
   if (withDetail) renderMapDetail();
+  placeMapDetail();
+}
+// fenêtre de détail flottante (issue #22) : posée sur la carte à côté du nœud sélectionné, reliée à lui par un trait.
+// Elle suit le nœud (glisser, défilement, redimensionnement, instantané) par simple repositionnement, sans être reconstruite.
+let popFor = null; // nœud dont la fenêtre a déjà pris le focus à l'ouverture (pas à chaque rafraîchissement)
+function placeMapDetail() {
+  const el = $('mapDetail'), link = $('mapLink'), wrap = $('mapWrap');
+  const r = bubbleMap && mapSel ? bubbleMap.nodes.get(mapSel) : null;
+  if (!r) { el.hidden = true; link.toggleAttribute('hidden', true); wrap.style.minHeight = ''; popFor = null; return; }
+  if (el.hidden) { link.toggleAttribute('hidden', true); wrap.style.minHeight = ''; return; }
+  const m = bubbleMap.svg.getScreenCTM();
+  if (!m) return;
+  // hauteur de la carte (SVG) : la fenêtre se dimensionne sur elle, sans boucle avec la hauteur du cadre
+  const mapH = $('map').getBoundingClientRect().height;
+  const narrow = window.innerWidth < 640, g = 8;
+  const box0 = wrap.getBoundingClientRect(), W = box0.width;
+  const c = new DOMPoint(r.n.x, r.n.y).matrixTransform(m);
+  const cx = c.x - box0.left, cy = c.y - box0.top, R = r.n.r * m.a, gap = R + 22;
+  const PW = narrow ? Math.max(200, W - 2 * g) : Math.min(420, Math.max(240, W - 2 * g));
+  el.style.width = `${PW}px`;
+  el.style.maxHeight = `${Math.max(120, Math.min(520, Math.round(Math.max(mapH, 440) * 0.7)))}px`;
+  const PH = el.offsetHeight;
+  // le cadre grandit si la fenêtre n'a pas la place à côté du nœud : elle reste entière, sans défilement de la page
+  wrap.style.minHeight = `${Math.ceil(Math.max(mapH, PH + 2 * g))}px`;
+  let H = wrap.getBoundingClientRect().height;
+  let x, y;
+  if (!narrow && cx + gap + PW <= W - g) { x = cx + gap; y = cy - PH / 2; } // à droite
+  else if (!narrow && cx - gap - PW >= g) { x = cx - gap - PW; y = cy - PH / 2; } // à gauche
+  else { x = narrow ? g : cx - PW / 2; y = cy + gap; } // sous le nœud (écran étroit : pleine largeur, flèche vers le haut)
+  if (y + PH + g > H) { wrap.style.minHeight = `${Math.ceil(y + PH + g)}px`; H = wrap.getBoundingClientRect().height; }
+  x = Math.max(g, Math.min(W - PW - g, x));
+  y = Math.max(g, Math.min(H - PH - g, y));
+  el.style.left = `${x}px`; el.style.top = `${y}px`;
+  // trait : du bord de la fenêtre le plus proche du nœud jusqu'au bord du nœud, avec une pointe sur le nœud
+  const ax = Math.max(x, Math.min(x + PW, cx)), ay = Math.max(y, Math.min(y + PH, cy));
+  const d0 = Math.hypot(cx - ax, cy - ay);
+  if (d0 <= R + 4) link.toggleAttribute('hidden', true); // le nœud est sous la fenêtre : pas de trait
+  else {
+    const tx = cx - ((cx - ax) / d0) * (R + 1), ty = cy - ((cy - ay) / d0) * (R + 1);
+    const L = Math.hypot(tx - ax, ty - ay), ux = (tx - ax) / L, uy = (ty - ay) / L;
+    const bx = tx - ux * 10, by = ty - uy * 10;
+    link.toggleAttribute('hidden', false);
+    setAttr(link, 'viewBox', `0 0 ${Math.round(W)} ${Math.round(H)}`);
+    setAttr($('mapLinkL'), 'x1', ax.toFixed(1)); setAttr($('mapLinkL'), 'y1', ay.toFixed(1));
+    setAttr($('mapLinkL'), 'x2', bx.toFixed(1)); setAttr($('mapLinkL'), 'y2', by.toFixed(1));
+    setAttr($('mapLinkA'), 'points', `${tx.toFixed(1)},${ty.toFixed(1)} ${(bx - uy * 5).toFixed(1)},${(by + ux * 5).toFixed(1)} ${(bx + uy * 5).toFixed(1)},${(by - ux * 5).toFixed(1)}`);
+  }
+  if (popFor !== mapSel) { popFor = mapSel; el.focus({ preventScroll: true }); }
+}
+// ferme la fenêtre ; avec back, le focus revient au nœud (Échap, bouton Fermer)
+function closeMapDetail(back) {
+  const id = mapSel;
+  mapSel = null; popFor = null; renderMap();
+  const r = back && id && bubbleMap ? bubbleMap.nodes.get(id) : null;
+  if (r) r.g.focus({ preventScroll: true });
 }
 
-function renderMapDetail() {
+// --- relance d'une session bloquée (issue #24) : bouton, confirmation, état. Rien n'est lancé sans la confirmation ;
+//     la page n'envoie que le projet, le nœud et la confirmation : le serveur résout la session et la commande ---
+let relaunchConfirm = null; // id du nœud dont la confirmation est ouverte
+const relaunchNote = new Map(); // id de nœud -> { text, cls } (retour du serveur)
+const relaunchPlanOf = (node) => ((snap && snap.relaunch && snap.relaunch.nodes) || {})[node] || null;
+// raison affichée pour un nœud non relançable ; '' si la relance est possible
+function relaunchWhy(node) {
+  const p = relaunchPlanOf(node);
+  if (p) return p.ok ? '' : t(`relaunch.reason.${p.reason}`);
+  const k = /^t:/.test(node) ? 'tool' : node === 'in:human' ? 'you' : node === 'in:watch' ? 'events' : node === 'in:quota' ? 'quota' : 'unknown';
+  return t(`relaunch.reason.${k}`);
+}
+function runLine(run) {
+  if (run.state === 'running') return h('span', { class: 'hnote info' }, t('relaunch.state.running'));
+  if (run.state === 'done') return h('span', { class: 'hnote ok' }, t('relaunch.state.done'));
+  return h('span', { class: 'hnote bad' }, t('relaunch.state.failed', { why: t(`relaunch.why.${run.reason || 'exit'}`, { code: run.code == null ? '' : run.code }) }));
+}
+// boîte de confirmation : projet, session, dossier et commande exacte (aucun secret)
+function relaunchConfirmBox(node, sess) {
+  const mode = (snap.relaunch && snap.relaunch.mode) || '';
+  const cmd = ['claude', '-p', '--resume', sess.claudeSessionId, '--output-format', 'json', ...(mode ? ['--permission-mode', mode] : [])].join(' ');
+  const row = (k, v) => h('div', { class: 'wrow' }, h('span', { class: 'wk' }, t(k)), h('span', { class: 'wv' }, v));
+  return h('div', { class: 'where rlconfirm' }, h('div', { class: 'wt' }, t('relaunch.title')),
+    row('relaunch.project', tr(snap.project.name)), row('relaunch.session', tr(sess.name)), row('relaunch.dir', snap.project.dir || ''),
+    row('relaunch.cmd', h('code', { class: 'mono' }, cmd)),
+    h('div', { class: 'muted' }, t('relaunch.note')),
+    h('div', { class: 'acts' },
+      h('button', { class: 'hbtn ok', onclick: () => relaunchSend(node) }, t('relaunch.confirm')),
+      h('button', { class: 'hbtn', onclick: () => { relaunchConfirm = null; renderMapDetail(true); } }, t('relaunch.cancel'))));
+}
+// bloc de relance d'un nœud : bouton (désactivé avec sa raison), état du dernier lancement, confirmation
+function relaunchBlock(node) {
+  const p = relaunchPlanOf(node), ok = !!(p && p.ok);
+  const why = relaunchWhy(node);
+  const sess = ok ? (snap.sessions || []).find((x) => x.id === p.session) : null;
+  const run = p && p.session ? (snap.runs || {})[p.session] : null;
+  const note = relaunchNote.get(node);
+  return h('div', { class: 'relaunch' },
+    h('div', { class: 'hnext' },
+      h('button', { class: 'hbtn primary', disabled: ok ? null : 'disabled', title: ok ? t('relaunch.tip') : why,
+        onclick: () => { relaunchConfirm = node; renderMapDetail(true); } }, t('relaunch.btn')),
+      !ok ? h('span', { class: 'muted' }, why) : null,
+      run ? runLine(run) : null,
+      note ? h('span', { class: `hnote ${note.cls}` }, note.text) : null),
+    ok && sess && relaunchConfirm === node ? relaunchConfirmBox(node, sess) : null);
+}
+async function relaunchSend(node) {
+  let r = null, j = {};
+  try {
+    r = await fetch('/api/relaunch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project: snap.projectId, target: node, confirm: true }) });
+    j = await r.json().catch(() => ({}));
+    relaunchNote.set(node, r.ok ? { text: t('relaunch.started'), cls: 'ok' }
+      : { text: j.reason && Object.hasOwn(DICT.en, `relaunch.reason.${j.reason}`) ? t(`relaunch.reason.${j.reason}`) : t('relaunch.err', { code: r.status }), cls: 'bad' });
+  } catch (e) { relaunchNote.set(node, { text: t('human.unreachable'), cls: 'bad' }); }
+  relaunchConfirm = null;
+  renderMapDetail(true);
+}
+
+// --- écrire un message à une session (issue #25) : champ, confirmation, état. Même plan et mêmes refus que la relance
+//     (relaunchPlanOf) ; la page n'envoie que le projet, le nœud, la confirmation et le texte : le serveur résout le reste ---
+let msgOpen = null; // id du nœud dont le champ est ouvert
+let msgConfirm = null; // { node, text } : message dont la confirmation est ouverte (texte figé à la vérification)
+const msgDraft = new Map(); // id de nœud -> texte saisi (gardé quand le panneau se reconstruit)
+const msgNote = new Map(); // id de nœud -> { text, cls } (retour du serveur)
+const MSG_MAX = 4000; // doit correspondre à MESSAGE_MAX_CHARS (lib.cjs)
+// raison affichée pour un nœud qui ne reçoit pas de message ; '' si l'envoi est possible
+function msgWhy(node) {
+  const p = relaunchPlanOf(node);
+  return p && p.reason === 'alive' ? t('msg.reason.alive') : relaunchWhy(node);
+}
+// message d'erreur du serveur : raison connue, texte trop long ou vide, sinon code HTTP
+function msgErr(j, status) {
+  if (j.reason && Object.hasOwn(DICT.en, `relaunch.reason.${j.reason}`)) return j.reason === 'alive' ? t('msg.reason.alive') : t(`relaunch.reason.${j.reason}`);
+  if (j.error === 'large') return t('msg.tooLong');
+  if (j.error === 'text') return t('msg.empty');
+  return t('msg.err', { code: status });
+}
+// boîte de confirmation : projet, session, dossier, commande exacte, mention ajoutée, texte (affiché comme texte)
+function msgConfirmBox(node, sess) {
+  const text = msgConfirm.text;
+  const mode = (snap.relaunch && snap.relaunch.mode) || '';
+  const cmd = ['claude', '-p', '--resume', sess.claudeSessionId, '--output-format', 'json', ...(mode ? ['--permission-mode', mode] : [])].join(' ');
+  const row = (k, v) => h('div', { class: 'wrow' }, h('span', { class: 'wk' }, t(k)), h('span', { class: 'wv' }, v));
+  const by = node.startsWith('a:') ? t('msg.byAgent', { a: node.slice(2) }) : sess.kind === 'workflow' ? t('msg.byWorkflow', { w: tr(sess.name) || sess.id }) : '';
+  return h('div', { class: 'where rlconfirm' }, h('div', { class: 'wt' }, t('msg.title')),
+    row('relaunch.project', tr(snap.project.name)), row('relaunch.session', tr(sess.name)), row('relaunch.dir', snap.project.dir || ''),
+    row('relaunch.cmd', h('code', { class: 'mono' }, cmd)),
+    h('div', { class: 'muted' }, t('msg.len', { n: [...text].length })),
+    by ? h('div', { class: 'muted' }, by) : null,
+    h('pre', { class: 'msgpreview' }, text),
+    h('div', { class: 'muted' }, t('msg.note')),
+    h('div', { class: 'acts' },
+      h('button', { class: 'hbtn ok', onclick: () => msgSend(node) }, t('msg.send')),
+      h('button', { class: 'hbtn', onclick: () => { msgConfirm = null; renderMapDetail(true); } }, t('msg.cancel'))));
+}
+// champ de saisie : vérifier le message ouvre la confirmation (le texte est figé à cet instant)
+function msgForm(node, sess) {
+  const area = h('textarea', { class: 'msgtext', rows: '4', maxlength: String(MSG_MAX), 'aria-label': t('msg.label'),
+    oninput: (e) => { msgDraft.set(node, e.target.value); } }, msgDraft.get(node) || '');
+  const check = h('button', { class: 'hbtn ok', onclick: () => {
+    const text = msgDraft.get(node) || '';
+    if (!text.trim()) msgNote.set(node, { text: t('msg.empty'), cls: 'bad' });
+    else msgConfirm = { node, text };
+    renderMapDetail(true);
+  } }, t('msg.check'));
+  return h('div', { class: 'msgform' }, h('label', null, t('msg.label'), area), check,
+    msgConfirm && msgConfirm.node === node ? msgConfirmBox(node, sess) : null);
+}
+// bloc d'écriture d'un nœud : bouton (désactivé avec sa raison), état du dernier lancement, champ, confirmation
+function msgBlock(node) {
+  const p = relaunchPlanOf(node), ok = !!(p && p.ok);
+  const sess = ok ? (snap.sessions || []).find((x) => x.id === p.session) : null;
+  const run = p && p.session ? (snap.runs || {})[p.session] : null;
+  const note = msgNote.get(node);
+  return h('div', { class: 'relaunch msgblock' },
+    h('div', { class: 'hnext' },
+      h('button', { class: 'hbtn primary', disabled: ok ? null : 'disabled', title: ok ? t('msg.tip') : msgWhy(node),
+        onclick: () => { msgOpen = msgOpen === node ? null : node; msgConfirm = null; renderMapDetail(true); } }, t('msg.btn')),
+      !ok ? h('span', { class: 'muted' }, msgWhy(node)) : null,
+      run ? runLine(run) : null,
+      note ? h('span', { class: `hnote ${note.cls}` }, note.text) : null),
+    ok && sess && msgOpen === node ? msgForm(node, sess) : null);
+}
+async function msgSend(node) {
+  const text = msgConfirm && msgConfirm.node === node ? msgConfirm.text : '';
+  let r = null, j = {};
+  try {
+    r = await fetch('/api/message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project: snap.projectId, target: node, confirm: true, text }) });
+    j = await r.json().catch(() => ({}));
+    if (r.ok) { msgDraft.delete(node); msgOpen = null; msgNote.set(node, { text: t('msg.sent'), cls: 'ok' }); }
+    else msgNote.set(node, { text: msgErr(j, r.status), cls: 'bad' });
+  } catch (e) { msgNote.set(node, { text: t('human.unreachable'), cls: 'bad' }); }
+  msgConfirm = null;
+  renderMapDetail(true);
+}
+
+function renderMapDetail(force) {
   const el = $('mapDetail');
   const d = mapSel && mapInfo.get(mapSel);
-  if (!d) { el.hidden = true; el.replaceChildren(); return; }
+  if (!d) { el.hidden = true; el.replaceChildren(); placeMapDetail(); return; }
   el.hidden = false;
-  const close = h('button', { class: 'f', onclick: () => { mapSel = null; renderMap(); } }, t('d.close'));
+  const nd = bubbleMap && bubbleMap.nodes.get(mapSel);
+  el.setAttribute('aria-label', t('d.dialog', { n: (nd && nd.n.label) || d.name || d.label || '' }));
+  // champ « Écrire » : sa saisie et sa sélection survivent à la reconstruction du panneau (le texte est dans msgDraft)
+  const act = document.activeElement, draftSel = act && el.contains(act) && act.classList.contains('msgtext') ? [act.selectionStart, act.selectionEnd] : null;
+  const list = mapBlocks.get(mapSel) || [];
+  const box = list.length ? blocksBox(mapSel, list, force) : null;
+  // le bloc d'étapes garde son élément (focus et sélection préservés) : seul le reste du panneau est reconstruit
+  const put = (...kids) => {
+    for (const c of [...el.childNodes]) if (c !== box) c.remove();
+    el.prepend(...kids.flat().filter((k) => k != null && k !== false));
+    if (box && box.parentNode !== el) el.append(box);
+  };
+  const close = h('button', { class: 'f', onclick: () => closeMapDetail(true) }, t('d.close'));
   const table = (head, rows) => h('div', { class: 'scroll' }, h('table', null, h('tr', null, head.map((x) => h('th', null, x))), rows));
   const toolCell = (u) => u ? h('span', null, h('span', { class: `tool ${u.tool}` }, u.tool), ' ', h('span', { class: 'mono' }, fit(u.what, 90)), u.refused || u.blocked ? h('span', { class: 'c-bad' }, t('d.refusedShort')) : null) : h('span', { class: 'muted' }, '—');
   const stTxt = { running: ['st.running', 'c-ok'], done: ['st.done', 'c-muted'], failed: ['st.failed', 'c-bad'], silent: ['st.silent', 'c-warn'] };
   if (d.type === 'agent') {
     const inst = d.y.inst.slice().sort((a, b) => ((b.status === 'running') - (a.status === 'running')) || b.mtime - a.mtime);
-    fill(el,
+    put(
       h('div', { class: 'dh' }, h('b', null, d.name), d.def ? h('span', { class: 'badge info' }, t('d.installed')) : h('span', { class: 'badge warn' }, t('d.auto')),
         d.def && d.def.model ? h('span', { class: 'badge' }, t('d.fixed', { m: d.def.model })) : d.def ? h('span', { class: 'badge' }, t('d.inherit')) : null,
         h('span', { class: 'sp' }), close),
       d.def && d.def.description ? h('div', { class: 'desc' }, d.def.description) : null,
+      inst.some((x) => x.status === 'failed' || x.status === 'silent') ? relaunchBlock(mapSel) : null,
+      msgBlock(mapSel),
       inst.length ? table([t('d.state'), t('d.model'), t('d.task'), t('d.by'), t('d.lastTool'), t('d.activity')], inst.map((x) => {
         const [l, c] = stTxt[x.status] ? [t(stTxt[x.status][0]), stTxt[x.status][1]] : [x.status, 'c-muted'];
         const lr = x.lastRefusal && Date.now() - x.lastRefusal.t < REFUSAL_MS;
@@ -1194,44 +1331,56 @@ function renderMapDetail() {
     const s = d.s, a = d.a;
     const evs = (snap.activity || []).filter((e) => e.session === s.id).slice(0, 12);
     const model = (a && a.model) || s.model || '';
-    fill(el,
+    put(
       h('div', { class: 'dh' }, h('b', null, tr(s.name)), h('span', { class: 'kind' }, kindTxt(s)), !s.human ? h('span', { class: 'chip' }, s.id) : null,
         s.status ? statusBadge(s.status) : null, model ? h('span', { class: 'badge', style: `color:${modelColor(model)}` }, shortModel(model)) : null, h('span', { class: 'sp' }), close),
       h('div', { class: 'desc' }, [s.phase ? t('d.phase', { p: s.phase }) : '', s.mode ? t('d.mode', { m: s.mode }) : '', (s.inProgress || []).length ? t('d.inprog', { x: s.inProgress.join(', ') }) : '',
         s.waitingFor ? t('d.waits', { x: s.waitingFor }) : '', s.blockedReason ? t('d.blocked', { x: s.blockedReason }) : '', a ? t('d.subs', { n: a.agentCount || 0 }) : ''].filter(Boolean).join(' · ') || '—'),
+      s.status === 'blocked' ? relaunchBlock(mapSel) : null,
+      msgBlock(mapSel),
       evs.length ? table([t('d.time'), t('d.who'), t('d.tool')], evs.map((e) => h('tr', null, h('td', { class: 'mono muted' }, hhmmss(e.ts)), h('td', null, e.agent || t('d.theSession')), h('td', null, toolCell(e)))))
         : h('div', { class: 'muted' }, t('d.noTools')));
   } else if (d.type === 'tool') {
     const S = d.S;
-    fill(el, h('div', { class: 'dh' }, h('b', null, d.label), h('span', { class: 'badge' }, t('d.nActions', { n: S.n })), h('span', { class: 'sp' }), close),
+    put( h('div', { class: 'dh' }, h('b', null, d.label), h('span', { class: 'badge' }, t('d.nActions', { n: S.n })), h('span', { class: 'sp' }), close),
+      relaunchBlock(mapSel),
+      msgBlock(mapSel),
       S.events.length ? table([t('d.time'), t('d.who'), t('d.call')], S.events.slice(0, 15).map((e) => h('tr', null, h('td', { class: 'mono muted' }, new Date(e.t).toLocaleTimeString(loc())), h('td', null, e.who), h('td', null, toolCell(e)))))
         : h('div', { class: 'muted' }, t('d.nothing10')));
   } else if (d.type === 'human') {
     const items = (snap.inbox || {}).items || [];
-    fill(el, h('div', { class: 'dh' }, h('b', null, t('m.you')), h('span', { class: 'sp' }), close),
-      lastTasks.length ? h('div', null, t('d.tasks'), ' ', lastTasks.map((x) => tr(x.title)).join(' · ')) : null,
+    const freeList = (mapBlocks.get('in:human') || []).filter((x) => !progressOf(x).done); // tâches sans rattachement à faire (même compte que le badge du nœud)
+    put( h('div', { class: 'dh' }, h('b', null, t('m.you')), h('span', { class: 'sp' }), close),
+      relaunchBlock(mapSel),
+      msgBlock(mapSel),
+      freeList.length ? h('div', null, t('d.tasks'), ' ', freeList.map((x) => tr(x.title)).join(' · ')) : null,
       items.length ? items.map((l) => h('div', { class: 'row' }, tr(l.text))) : h('div', { class: 'muted' }, tr((snap.inbox || {}).hint) || t('inbox.empty')));
   } else if (d.type === 'quota') {
     const u = snap.usage;
-    fill(el, h('div', { class: 'dh' }, h('b', null, t('m.quota')), h('span', { class: 'sp' }), close),
+    put( h('div', { class: 'dh' }, h('b', null, t('m.quota')), h('span', { class: 'sp' }), close),
+      relaunchBlock(mapSel),
       u && u.windows && u.windows.length ? u.windows.map((w) => h('div', null, `${tr(w.label)} : ${Math.round(w.percent)} %`)) : h('div', { class: 'muted' }, tr((snap.hints || {}).usage) || t('q.empty')));
   } else if (d.type === 'more') {
-    fill(el, h('div', { class: 'dh' }, h('b', null, d.label), h('span', { class: 'sp' }), close), d.items.map((x) => h('div', { class: 'row' }, x)));
+    put( h('div', { class: 'dh' }, h('b', null, d.label), h('span', { class: 'sp' }), close), d.items.map((x) => h('div', { class: 'row' }, x)));
   } else if (d.type === 'watch') {
     const f = snap.feed || { items: [] };
-    fill(el, h('div', { class: 'dh' }, h('b', null, tr(f.title) || t('feed.title')), h('span', { class: 'sp' }), close),
+    put( h('div', { class: 'dh' }, h('b', null, tr(f.title) || t('feed.title')), h('span', { class: 'sp' }), close),
+      relaunchBlock(mapSel),
       f.items.slice(0, 16).map((l) => h('div', { class: 'row mono' }, [l.ts, tr(l.chip), tr(l.text), l.note].filter(Boolean).join('  '))));
   }
+  if (draftSel) { const ta = el.querySelector('.msgtext'); if (ta) { ta.focus({ preventScroll: true }); try { ta.setSelectionRange(draftSel[0], draftSel[1]); } catch {} } }
+  placeMapDetail();
 }
 
 // --- connexion temps réel (Server-Sent Events, reconnexion automatique), un flux par projet ---
 let lastMsg = 0, es = null;
 function resetView() {
-  snap = null; filterKey = null; seenEv = new Set(); firstRender = true; mapSel = null; humanSig = ''; lastDone = null; lastTasks = [];
-  pktSeen = new Set(); pktReady = false; stepNotes.clear(); lastMsg = 0;
+  snap = null; mapSel = null; lastDone = null; lastDoneNode = null; lastTasks = []; mapBlocks = new Map(); curByNode.clear(); blkCache = { sig: '', el: null };
+  pktSeen = new Set(); pktReady = false; stepNotes.clear(); relaunchNote.clear(); relaunchConfirm = null; msgDraft.clear(); msgNote.clear(); msgOpen = null; msgConfirm = null; lastMsg = 0;
   if (bubbleMap) { bubbleMap.storeKey = null; for (const [, r] of bubbleMap.nodes) r.g.remove(); bubbleMap.nodes.clear(); for (const [, r] of bubbleMap.edges) r.g.remove(); bubbleMap.edges.clear(); bubbleMap.gP.replaceChildren(); }
-  for (const id of ['sessions', 'activity', 'workflows', 'journal', 'inbox', 'feed', 'alerts', 'human', 'quotas', 'stepper', 'mapDetail']) fill($(id));
-  $('humanCard').hidden = true; $('mapDetail').hidden = true;
+  for (const id of ['journal', 'alerts', 'quotas', 'mapDetail']) fill($(id));
+  $('mapDetail').hidden = true;
+  $('mapLink').toggleAttribute('hidden', true); $('mapWrap').style.minHeight = ''; popFor = null;
 }
 function connect() {
   if (es) es.close();
@@ -1261,11 +1410,7 @@ function setConn(ok, waiting) {
   else { c.className = 'badge bad'; fill(c, h('span', { class: 'dot' }), t('conn.lost')); }
 }
 const renderUpdated = () => { if (snap) $('updated').textContent = lastMsg ? t('updated', { ago: ago(new Date(lastMsg)) }) : ''; };
-setInterval(() => {
-  renderUpdated();
-  // les durées relatives (« il y a … ») avancent sans attendre un changement
-  if (snap && !snap.error && Date.now() - lastMsg > 15000) { renderSessions(); }
-}, 5000);
+setInterval(renderUpdated, 5000);
 // les liens s'éteignent 30 s après le dernier échange, même sans nouvel instantané ;
 // le panneau de détail n'est reconstruit qu'à un nouvel instantané ou à un clic (sa position de défilement reste)
 function renderDiagrams(withDetail = true) {
@@ -1277,7 +1422,7 @@ $('projSel').addEventListener('change', (e) => switchProject(e.target.value));
 $('langBtn').addEventListener('click', () => {
   lang = LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length];
   try { localStorage.setItem('orch-lang', lang); } catch {}
-  renderStatic(); humanSig = ''; if (bubbleMap) bubbleMap.hk = '';
+  renderStatic(); if (bubbleMap) bubbleMap.hk = '';
   if (snap) { setConn(true); render(); renderUpdated(); }
 });
 // textes des adaptateurs installés (chaînes seulement), ajoutés au dictionnaire sans remplacer ceux de la page

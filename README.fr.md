@@ -5,11 +5,11 @@
 Un tableau de bord web local, en temps réel, pour les **orchestrateurs d'agents IA**. Il montre ce que fait ton orchestrateur en ce moment et, quand il a besoin de toi, te guide **une étape à la fois**.
 
 - **Carte en direct** : sessions → agents → outils, reliés par des liens animés. Chaque échange réel (commande, appel d'outil, lancement d'agent, rapport, refus) part en paquet étiqueté. Elle montre le modèle de chaque agent, marque les agents créés automatiquement, et ses bulles se déplacent.
-- **À toi d'agir** : chaque blocage qui attend un humain devient une tâche guidée. Chaque étape dit *où* agir (lien exact, fichier local ouvert à la bonne ligne, ou commande à copier), avec un bouton par action.
-- **Sessions, activité en direct, quotas, workflows, journal, consignes en attente, événements.**
+- **Blocages sur leur nœud** : chaque tâche qui attend un humain est rattachée à la session (`session`) ou au sous-agent (`agent`) qu'elle concerne, et ses étapes s'affichent dans le détail de ce nœud, une à la fois. Chaque étape dit *où* agir (lien exact, fichier local ouvert à la bonne ligne, ou commande à copier), avec un bouton par action. Sans rattachement, elle reste sur le nœud « Toi ». Une session `pending` reste sur la carte tant qu'elle n'est pas terminée.
+- **Carte en direct, quotas du forfait et journal.** Le tableau de bord affiche la carte en direct, les quotas du forfait et le journal. Les sessions, l'activité en direct, les consignes en attente et les événements se lisent sur la carte : nœuds « Toi » et « Événements » et vue détail d'une session (clic sur son nœud).
 - **Plusieurs projets** dans une seule page (sélecteur de projet), interface **en français et en anglais**.
 - **N'importe quel orchestrateur** : un fichier JSON à écrire, ou un petit adaptateur. Tous les langages et frameworks conviennent.
-- **Sans dépendance** (Node.js 18+), **en lecture seule**, servi uniquement sur `127.0.0.1`.
+- **Sans dépendance** (Node.js 18+), **en lecture seule** pour les projets (les actions confirmées lancent `claude` : relance d'une session bloquée et envoi d'un message à une session, voir plus bas), servi uniquement sur `127.0.0.1`.
 
 ## Prérequis
 
@@ -61,6 +61,10 @@ node server.cjs start /chemin/du/projet
 Le format complet (sessions, agents, activité, phases, quotas, tâches, traductions) et l'écriture d'un adaptateur sont décrits dans **[FORMAT.fr.md](FORMAT.fr.md)**. Pour démarrer, pars de l'exemple complet dans [`examples/`](examples/.orchestrator-dashboard.json).
 
 **Avec Claude Code** : donne le `claudeSessionId` d'une session, et le tableau de bord lit son modèle, ses sous-agents et leurs outils dans les transcripts locaux de Claude Code (en lecture seule).
+
+**Relancer une session bloquée** : une session bloquée, avec un `claudeSessionId` valide et non vivante, reçoit le bouton **Relancer la session**. Après une boîte de confirmation (projet, session, dossier et commande exacte), le tableau de bord lance `claude -p --resume <id> --output-format json` dans le dossier du projet, et affiche si elle tourne, a fini ou a échoué. Le binaire vient de `claudePath` dans le `config.json` du tableau de bord (ou de la variable `ORCH_DASHBOARD_CLAUDE`) ; un script `.cmd` est refusé. `claudePermissionMode` (`default`, `acceptEdits`, `plan`, `auto`, `dontAsk`) est facultatif et réglé seulement par l'utilisateur. Voir [SECURITY.md](SECURITY.md).
+
+**Écrire à une session** : un nœud non vivant (une session, un sous-agent, une session de workflow) reçoit le bouton **Écrire à la session**. Tu saisis un message (4000 caractères au plus, et 8 Ko en octets : environ 2700 caractères CJK ou emoji), puis tu confirmes une boîte qui affiche le projet, la session, le dossier, la commande exacte et le texte. Le tableau de bord lance la même commande `claude -p --resume <id>` et passe le message sur l'entrée standard ; le message d'un sous-agent part vers sa session propriétaire, précédé d'une mention de l'agent. Les outils, « Toi » et « Événements » n'ont pas ce bouton. Les messages sont journalisés sans leur texte. Voir [SECURITY.md](SECURITY.md).
 
 ## Commandes
 

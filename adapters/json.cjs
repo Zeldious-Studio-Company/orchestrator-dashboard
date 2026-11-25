@@ -67,7 +67,7 @@ function snapshot(dir, env) {
     inProgress: arr(s.inProgress, 20).map((x) => str(x, 80)), waitingFor: str(s.waitingFor, 300), blockedReason: str(s.blockedReason, 500),
     handedOffTo: str(s.handedOffTo, 120), updated: str(s.updated, 40), started: str(s.started, 40), host: str(s.host, 60), dirLabel: str(s.dirLabel, 60),
     note: str(s.note, 500), pending: bool(s.pending), launched: bool(s.launched), isMain: true, model: str(s.model, 60),
-    claudeSessionId: /^[A-Za-z0-9_-]{8,80}$/.test(String(s.claudeSessionId || '')) ? s.claudeSessionId : null,
+    claudeSessionId: L.SID_RE.test(String(s.claudeSessionId || '')) ? s.claudeSessionId : null, claudeSessionIdInvalid: Boolean(s.claudeSessionId) && !L.SID_RE.test(String(s.claudeSessionId)), // jamais de « - » en tête (issue #24) ; présent mais invalide : 400 à la relance
   }));
   const sessIds = new Set(sessions.map((s) => s.id));
 
@@ -111,7 +111,7 @@ function snapshot(dir, env) {
     const steps = arr(t.steps, MAX.steps).map((x) => L.normStep(x, ctx)).filter(Boolean);
     const summary = txt(t.summary, 1000);
     return { id: id(t.id) || `task-${i}`, kind: str(t.kind, 30) || 'action', kindLabel: txt(t.kindLabel, 40) || undefined, tone: tone(t.tone) || undefined,
-      title: txt(t.title, 200) || T('json.task'), summary, explicit: true, doneText: txt(t.doneText, 300) || undefined, session: t.session ? id(t.session) : null,
+      title: txt(t.title, 200) || T('json.task'), summary, explicit: true, doneText: txt(t.doneText, 300) || undefined, session: t.session ? id(t.session) : null, agent: str(t.agent, 60) || null,
       refs: L.itemRefs([summary, ...steps.map((s) => s.text)], linkOps), steps };
   }).filter((t) => t.steps.length);
 

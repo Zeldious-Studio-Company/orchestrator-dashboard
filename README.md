@@ -5,11 +5,11 @@
 A live, local web dashboard for **AI agent orchestrators**. It shows what your orchestrator is doing right now and, when it needs you, walks you through what to do **one step at a time**.
 
 - **Live map**: sessions → agents → tools, linked by animated edges. Every real exchange (command, tool call, agent start, report, refusal) travels as a labelled packet. It shows the model each agent runs, AUTO tags for spawned agents, and draggable bubbles.
-- **Your turn**: every blocker that needs a human becomes a guided task. Each step says *where* to act (exact link, local file opened at the right line, or command to copy), with one button per action.
-- **Sessions, live activity, usage, workflows, log, pending instructions, events.**
+- **Blockers on their node**: each task that needs a human is attached to the session (`session`) or sub-agent (`agent`) it belongs to, and its steps show in that node's detail, one at a time. Each step says *where* to act (exact link, local file opened at the right line, or command to copy), with one button per action. Without one, it stays on the « You » node. A session marked `pending` stays on the map until it is done.
+- **Live map, usage quotas and log.** The dashboard shows the live map, the plan's usage quotas and the log. Sessions, live activity, pending instructions and events are shown on the map: the « You » and « Events » nodes and the session detail (click a session node).
 - **Several projects** in one page (project selector), **English and French** interface.
 - **Any orchestrator**: write one JSON file, or add a small adapter. Works with any language or framework.
-- **No dependencies** (Node.js 18+), **read-only**, served on `127.0.0.1` only.
+- **No dependencies** (Node.js 18+), **read-only** for projects (confirmed actions run `claude`: relaunching a blocked session and writing a message to a session, see below), served on `127.0.0.1` only.
 
 ## Requirements
 
@@ -59,7 +59,7 @@ Have your orchestrator write `.orchestrator-dashboard.json` at the root of its p
   "orchestrator": "MyOrchestrator",
   "project": { "name": "My project" },
   "sessions": [{ "id": "main", "name": "Planner", "alive": true, "status": "running", "model": "claude-opus-5-5" }],
-  "tasks": [{ "id": "key", "title": "Provide the API key", "steps": [
+  "tasks": [{ "id": "key", "session": "main", "title": "Provide the API key", "steps": [
     { "text": "Create a key", "url": "https://example.com/keys" },
     { "text": "Put it in the file", "path": "config/.env", "line": 1 }
   ] }]
@@ -75,6 +75,10 @@ node server.cjs start /path/to/project
 The full format (sessions, agents, activity, phases, usage, tasks, translations) and how to write an adapter are in **[FORMAT.md](FORMAT.md)**. Start from the complete example in [`examples/`](examples/.orchestrator-dashboard.json).
 
 **Claude Code users**: give a session's `claudeSessionId` and the dashboard reads its model, sub-agents and their tools from the local Claude Code transcripts (read-only).
+
+**Relaunching a blocked session**: a blocked session with a valid `claudeSessionId` that is not alive gets a **Relaunch the session** button. After a confirmation box (project, session, folder and exact command), the dashboard runs `claude -p --resume <id> --output-format json` in the project folder, and shows whether it is running, finished or failed. The binary comes from `claudePath` in the dashboard's `config.json` (or the `ORCH_DASHBOARD_CLAUDE` variable); a `.cmd` script is refused. `claudePermissionMode` (`default`, `acceptEdits`, `plan`, `auto`, `dontAsk`) is optional and set only by the user. See [SECURITY.md](SECURITY.md).
+
+**Writing to a session**: a node that is not alive (a session, a sub-agent, a workflow session) gets a **Write to the session** button. You type a message (up to 4000 characters, and 8 KB in bytes: about 2700 CJK characters or emoji), then confirm a box that shows the project, session, folder, exact command and the text. The dashboard runs the same `claude -p --resume <id>` command and passes the message on standard input; a sub-agent's message is sent to its owning session with a prefix naming the agent. Tools, « You » and « Events » have no such button. Messages are logged without their text. See [SECURITY.md](SECURITY.md).
 
 ## Commands
 

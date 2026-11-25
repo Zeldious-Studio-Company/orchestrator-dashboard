@@ -7,7 +7,7 @@
   "sessions": [
     { "id": "lead", "name": "Lead planner", "kind": "planner", "kindLabel": { "en": "planner", "fr": "planificateur" }, "alive": true, "status": "running", "phase": "Build", "model": "claude-opus-5-5" },
     { "id": "w1", "name": "Worker 1", "kind": "worker", "kindLabel": { "en": "worker", "fr": "ouvrier" }, "parent": "lead", "alive": true, "auto": true, "status": "waiting", "waitingFor": "review", "model": "claude-sonnet-5-5" },
-    { "id": "w2", "name": "Worker 2", "kind": "worker", "kindLabel": { "en": "worker", "fr": "ouvrier" }, "parent": "lead", "alive": false, "auto": true, "status": "blocked", "blockedReason": "Missing Stripe test key" }
+    { "id": "w2", "name": "Worker 2", "kind": "worker", "kindLabel": { "en": "worker", "fr": "ouvrier" }, "parent": "lead", "alive": false, "auto": true, "pending": true, "status": "blocked", "blockedReason": "Missing Stripe test key" }
   ],
   "activity": [
     { "session": "w1", "agent": "coder", "tool": "Bash", "what": "git commit -m \"feat: cart totals\"" },
@@ -26,11 +26,19 @@
   "usage": { "windows": [{ "label": { "en": "Token budget", "fr": "Budget de tokens" }, "percent": 64 }] },
   "links": { "item": "https://jira.example.com/browse/{id}" },
   "tasks": [
-    { "id": "stripe-key", "kind": "blocked", "title": { "en": "Provide the Stripe test key", "fr": "Fournir la clé de test Stripe" }, "summary": { "en": "Worker 2 is waiting for #12", "fr": "Worker 2 attend #12" },
+    { "id": "stripe-key", "session": "w2", "kind": "blocked", "title": { "en": "Provide the Stripe test key", "fr": "Fournir la clé de test Stripe" }, "summary": { "en": "Worker 2 is waiting for #12", "fr": "Worker 2 attend #12" },
       "steps": [
         { "text": { "en": "Create a test key", "fr": "Crée une clé de test" }, "url": "https://dashboard.stripe.com/test/apikeys" },
         { "text": { "en": "Put it in the example file", "fr": "Mets-la dans le fichier d'exemple" }, "path": "config.example.env", "line": 1 },
         { "text": { "en": "Restart the worker", "fr": "Relance le worker" }, "cmd": "crew resume w2", "where": { "en": "Terminal, in the project folder", "fr": "Terminal, dans le dossier du projet" } }
+      ] },
+    { "id": "review-pr", "session": "w9", "kind": "pr", "title": { "en": "Review the pull request", "fr": "Valider la pull request" }, "summary": { "en": "Session w9 is not in the file: this task has no node", "fr": "La session w9 n'est pas dans le fichier : cette tâche n'a pas de nœud" },
+      "steps": [
+        { "text": { "en": "Read the diff and approve it", "fr": "Lis le diff et valide-le" }, "url": "https://example.com/pulls/12" }
+      ] },
+    { "id": "review-code", "agent": "reviewer", "kind": "pr", "title": { "en": "Check the reviewer's findings", "fr": "Vérifier les remarques du relecteur" }, "summary": { "en": "The reviewer sub-agent is waiting for a decision", "fr": "Le sous-agent relecteur attend une décision" },
+      "steps": [
+        { "text": { "en": "Decide on each remark", "fr": "Tranche chaque remarque" } }
       ] }
   ],
   "alerts": [{ "tone": "warn", "title": "Budget", "text": { "en": "64% of the token budget used", "fr": "64 % du budget de tokens utilisé" } }]

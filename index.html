@@ -131,6 +131,13 @@ svg .rip { fill: none; stroke: var(--pc, var(--accent)); stroke-width: 3; transf
 .detail td { padding: 5px 8px 5px 0; border-bottom: 1px solid var(--border); vertical-align: top; overflow-wrap: anywhere; }
 .detail tr:last-child td { border-bottom: 0; }
 .detail .scroll { overflow-x: auto; max-height: 320px; overflow-y: auto; }
+/* détail flottant (issue #22) : fenêtre posée sur la carte, à côté du nœud, reliée à lui par un trait */
+.mapwrap { position: relative; }
+.pop { position: absolute; z-index: 5; width: 420px; max-height: 520px; overflow-y: auto; overscroll-behavior: contain; margin: 0; padding: 10px 12px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); box-shadow: 0 10px 30px rgba(0, 0, 0, .22); }
+.pop:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.plink { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; overflow: visible; }
+.plink line { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+.plink polygon { fill: var(--accent); }
 footer { color: var(--muted); font-size: 12px; text-align: center; padding: 10px; }
 footer #mainDir { overflow-wrap: anywhere; }
 /* actions humaines pas à pas */
@@ -203,14 +210,18 @@ span.wv { color: var(--text); word-break: normal; }
 <main>
   <div id="alerts" class="alerts"></div>
   <section class="card full"><h2><span data-t="map.title"></span> <span id="mapCount" class="count"></span><span class="sp"></span><span id="mapModels" class="toolbar"></span><button id="mapReset" class="f" type="button" hidden data-t="map.reset" data-tt="map.resetTip"></button></h2>
-    <div id="map" class="diagram"></div>
+    <div id="mapWrap" class="mapwrap">
+      <div id="map" class="diagram"></div>
+      <svg id="mapLink" class="plink" aria-hidden="true" hidden><line id="mapLinkL" x1="0" y1="0" x2="0" y2="0"></line><polygon id="mapLinkA" points="0,0 0,0 0,0"></polygon></svg>
+      <div id="mapDetail" class="detail pop" role="dialog" tabindex="-1" hidden></div>
+    </div>
     <div class="legend">
       <span><span class="sw c-ok"></span><span data-t="lg.run"></span></span><span><span class="sw c-warn"></span><span data-t="lg.wait"></span></span><span><span class="sw dash c-warn"></span><span data-t="lg.silent"></span></span>
       <span><span class="sw c-bad"></span><span data-t="lg.bad"></span></span><span><span class="sw c-muted"></span><span data-t="lg.idle"></span></span>
       <span><span class="pk"></span><span data-t="lg.packet"></span></span>
       <span data-t="lg.rest"></span>
     </div>
-    <div id="mapDetail" class="detail" hidden></div></section>
+  </section>
   <div class="col">
     <section class="card"><h2><span data-t="q.title"></span> <span class="sp"></span><span id="qAge" class="muted" style="font-weight:400;font-size:12px"></span></h2><div id="quotas" class="body"></div></section>
     <section class="card"><h2><span data-t="j.title"></span> <span id="jCount" class="count"></span></h2><div id="journal" class="list"></div></section>

@@ -70,7 +70,7 @@ const DICT = {
     'm.youTip': 'Consignes non lues : {i}\nActions à faire : {t}',
     'm.quota': 'Quotas', 'm.quotaSub': 'fenêtre la plus utilisée', 'm.agoMin': 'il y a {n} min', 'm.noQuota': 'pas de relevé',
     'm.feedSub': 'événements', 'm.launch': 'lance {x}', 'm.start': 'démarre {x}', 'm.report': 'rapport', 'm.quotas': 'quotas',
-    'd.close': 'Fermer ✕', 'd.installed': 'agent installé', 'd.auto': 'créé automatiquement', 'd.fixed': 'modèle fixé : {m}', 'd.inherit': 'modèle hérité de la session qui le lance',
+    'd.close': 'Fermer ✕', 'd.dialog': 'Détail de {n}', 'd.installed': 'agent installé', 'd.auto': 'créé automatiquement', 'd.fixed': 'modèle fixé : {m}', 'd.inherit': 'modèle hérité de la session qui le lance',
     'd.state': 'État', 'd.model': 'Modèle', 'd.task': 'Tâche', 'd.by': 'Lancé par', 'd.lastTool': 'Dernier outil', 'd.activity': 'Activité', 'd.unknown': 'inconnu', 'd.asked': 'demandé : {a}',
     'd.refused': '⛔ outil refusé : ', 'd.refusedShort': ' ⛔ refusé', 'd.noInst': 'Aucune instance dans les 30 dernières minutes ({n} en 6 h).', 'd.notRun': 'Pas lancé ces 6 dernières heures.',
     'd.phase': 'Phase {p}', 'd.mode': 'mode {m}', 'd.inprog': 'en cours : {x}', 'd.waits': 'attend : {x}', 'd.blocked': 'bloquée : {x}', 'd.subs': '{n} sous-agent(s) en 6 h',
@@ -147,7 +147,7 @@ const DICT = {
     'm.youTip': 'Unread instructions: {i}\nActions to do: {t}',
     'm.quota': 'Usage', 'm.quotaSub': 'most used window', 'm.agoMin': '{n} min ago', 'm.noQuota': 'no reading',
     'm.feedSub': 'events', 'm.launch': 'starts {x}', 'm.start': 'starting {x}', 'm.report': 'report', 'm.quotas': 'usage',
-    'd.close': 'Close ✕', 'd.installed': 'installed agent', 'd.auto': 'created automatically', 'd.fixed': 'fixed model: {m}', 'd.inherit': 'model inherited from the session that starts it',
+    'd.close': 'Close ✕', 'd.dialog': 'Details of {n}', 'd.installed': 'installed agent', 'd.auto': 'created automatically', 'd.fixed': 'fixed model: {m}', 'd.inherit': 'model inherited from the session that starts it',
     'd.state': 'State', 'd.model': 'Model', 'd.task': 'Task', 'd.by': 'Started by', 'd.lastTool': 'Last tool', 'd.activity': 'Activity', 'd.unknown': 'unknown', 'd.asked': 'requested: {a}',
     'd.refused': '⛔ tool refused: ', 'd.refusedShort': ' ⛔ refused', 'd.noInst': 'No instance in the last 30 minutes ({n} in 6 h).', 'd.notRun': 'Not run in the last 6 hours.',
     'd.phase': 'Phase {p}', 'd.mode': 'mode {m}', 'd.inprog': 'in progress: {x}', 'd.waits': 'waiting for: {x}', 'd.blocked': 'blocked: {x}', 'd.subs': '{n} sub-agent(s) in 6 h',
@@ -549,7 +549,7 @@ class BubbleMap {
     this.svg.append(this.gHead, this.gE, this.gN, this.gP);
     host.replaceChildren(this.svg);
     this.nodes = new Map(); this.edges = new Map(); this.hk = ''; this.fid = 0;
-    this.onPick = null; this.onMoved = null;
+    this.onPick = null; this.onMoved = null; this.onMoveNode = null;
     this.pos = new Map(); this.storeKey = null; this.drag = null; this.dragEnd = 0; this.live = 0;
   }
   // positions choisies à la main : gardées dans le navigateur, par projet
@@ -576,6 +576,7 @@ class BubbleMap {
     r.g.style.transform = `translate(${r.n.x}px, ${r.n.y}px)`;
     this.pos.set(id, { x: r.n.x, y: r.n.y });
     this.redrawEdges(id);
+    this.onMoveNode && this.onMoveNode(id);
   }
   down(ev, id) {
     if (ev.button !== 0 && ev.pointerType === 'mouse') return;
@@ -1071,6 +1072,11 @@ function renderMap(withDetail = true) {
     bubbleMap.onPick = (id) => { mapSel = mapSel === id ? null : id; renderMap(); };
     bubbleMap.onMoved = () => { $('mapReset').hidden = !bubbleMap.pos.size; };
     $('mapReset').addEventListener('click', () => { bubbleMap.resetPositions(); renderMap(false); });
+    // la fenêtre de détail suit le nœud : glisser, défilement horizontal de la carte, redimensionnement
+    bubbleMap.onMoveNode = () => placeMapDetail();
+    $('map').addEventListener('scroll', () => placeMapDetail(), { passive: true });
+    window.addEventListener('resize', () => placeMapDetail());
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && mapSel && !$('mapDetail').hidden) closeMapDetail(true); });
   }
   bubbleMap.usePositions(`orch-map-pos:${snap.project.dir || snap.projectId}`);
   $('mapReset').hidden = !bubbleMap.pos.size;
@@ -1087,6 +1093,61 @@ function renderMap(withDetail = true) {
   const ck = chips.map((c) => c.textContent).join('|');
   if (ck !== $('mapModels').dataset.k) { $('mapModels').dataset.k = ck; fill($('mapModels'), chips); }
   if (withDetail) renderMapDetail();
+  placeMapDetail();
+}
+// fenêtre de détail flottante (issue #22) : posée sur la carte à côté du nœud sélectionné, reliée à lui par un trait.
+// Elle suit le nœud (glisser, défilement, redimensionnement, instantané) par simple repositionnement, sans être reconstruite.
+let popFor = null; // nœud dont la fenêtre a déjà pris le focus à l'ouverture (pas à chaque rafraîchissement)
+function placeMapDetail() {
+  const el = $('mapDetail'), link = $('mapLink'), wrap = $('mapWrap');
+  const r = bubbleMap && mapSel ? bubbleMap.nodes.get(mapSel) : null;
+  if (!r) { el.hidden = true; link.toggleAttribute('hidden', true); wrap.style.minHeight = ''; popFor = null; return; }
+  if (el.hidden) { link.toggleAttribute('hidden', true); wrap.style.minHeight = ''; return; }
+  const m = bubbleMap.svg.getScreenCTM();
+  if (!m) return;
+  // hauteur de la carte (SVG) : la fenêtre se dimensionne sur elle, sans boucle avec la hauteur du cadre
+  const mapH = $('map').getBoundingClientRect().height;
+  const narrow = window.innerWidth < 640, g = 8;
+  const box0 = wrap.getBoundingClientRect(), W = box0.width;
+  const c = new DOMPoint(r.n.x, r.n.y).matrixTransform(m);
+  const cx = c.x - box0.left, cy = c.y - box0.top, R = r.n.r * m.a, gap = R + 22;
+  const PW = narrow ? Math.max(200, W - 2 * g) : Math.min(420, Math.max(240, W - 2 * g));
+  el.style.width = `${PW}px`;
+  el.style.maxHeight = `${Math.max(120, Math.min(520, Math.round(Math.max(mapH, 440) * 0.7)))}px`;
+  const PH = el.offsetHeight;
+  // le cadre grandit si la fenêtre n'a pas la place à côté du nœud : elle reste entière, sans défilement de la page
+  wrap.style.minHeight = `${Math.ceil(Math.max(mapH, PH + 2 * g))}px`;
+  let H = wrap.getBoundingClientRect().height;
+  let x, y;
+  if (!narrow && cx + gap + PW <= W - g) { x = cx + gap; y = cy - PH / 2; } // à droite
+  else if (!narrow && cx - gap - PW >= g) { x = cx - gap - PW; y = cy - PH / 2; } // à gauche
+  else { x = narrow ? g : cx - PW / 2; y = cy + gap; } // sous le nœud (écran étroit : pleine largeur, flèche vers le haut)
+  if (y + PH + g > H) { wrap.style.minHeight = `${Math.ceil(y + PH + g)}px`; H = wrap.getBoundingClientRect().height; }
+  x = Math.max(g, Math.min(W - PW - g, x));
+  y = Math.max(g, Math.min(H - PH - g, y));
+  el.style.left = `${x}px`; el.style.top = `${y}px`;
+  // trait : du bord de la fenêtre le plus proche du nœud jusqu'au bord du nœud, avec une pointe sur le nœud
+  const ax = Math.max(x, Math.min(x + PW, cx)), ay = Math.max(y, Math.min(y + PH, cy));
+  const d0 = Math.hypot(cx - ax, cy - ay);
+  if (d0 <= R + 4) link.toggleAttribute('hidden', true); // le nœud est sous la fenêtre : pas de trait
+  else {
+    const tx = cx - ((cx - ax) / d0) * (R + 1), ty = cy - ((cy - ay) / d0) * (R + 1);
+    const L = Math.hypot(tx - ax, ty - ay), ux = (tx - ax) / L, uy = (ty - ay) / L;
+    const bx = tx - ux * 10, by = ty - uy * 10;
+    link.toggleAttribute('hidden', false);
+    setAttr(link, 'viewBox', `0 0 ${Math.round(W)} ${Math.round(H)}`);
+    setAttr($('mapLinkL'), 'x1', ax.toFixed(1)); setAttr($('mapLinkL'), 'y1', ay.toFixed(1));
+    setAttr($('mapLinkL'), 'x2', bx.toFixed(1)); setAttr($('mapLinkL'), 'y2', by.toFixed(1));
+    setAttr($('mapLinkA'), 'points', `${tx.toFixed(1)},${ty.toFixed(1)} ${(bx - uy * 5).toFixed(1)},${(by + ux * 5).toFixed(1)} ${(bx + uy * 5).toFixed(1)},${(by - ux * 5).toFixed(1)}`);
+  }
+  if (popFor !== mapSel) { popFor = mapSel; el.focus({ preventScroll: true }); }
+}
+// ferme la fenêtre ; avec back, le focus revient au nœud (Échap, bouton Fermer)
+function closeMapDetail(back) {
+  const id = mapSel;
+  mapSel = null; popFor = null; renderMap();
+  const r = back && id && bubbleMap ? bubbleMap.nodes.get(id) : null;
+  if (r) r.g.focus({ preventScroll: true });
 }
 
 // --- relance d'une session bloquée (issue #24) : bouton, confirmation, état. Rien n'est lancé sans la confirmation ;
@@ -1228,8 +1289,12 @@ async function msgSend(node) {
 function renderMapDetail(force) {
   const el = $('mapDetail');
   const d = mapSel && mapInfo.get(mapSel);
-  if (!d) { el.hidden = true; el.replaceChildren(); return; }
+  if (!d) { el.hidden = true; el.replaceChildren(); placeMapDetail(); return; }
   el.hidden = false;
+  const nd = bubbleMap && bubbleMap.nodes.get(mapSel);
+  el.setAttribute('aria-label', t('d.dialog', { n: (nd && nd.n.label) || d.name || d.label || '' }));
+  // champ « Écrire » : sa saisie et sa sélection survivent à la reconstruction du panneau (le texte est dans msgDraft)
+  const act = document.activeElement, draftSel = act && el.contains(act) && act.classList.contains('msgtext') ? [act.selectionStart, act.selectionEnd] : null;
   const list = mapBlocks.get(mapSel) || [];
   const box = list.length ? blocksBox(mapSel, list, force) : null;
   // le bloc d'étapes garde son élément (focus et sélection préservés) : seul le reste du panneau est reconstruit
@@ -1238,7 +1303,7 @@ function renderMapDetail(force) {
     el.prepend(...kids.flat().filter((k) => k != null && k !== false));
     if (box && box.parentNode !== el) el.append(box);
   };
-  const close = h('button', { class: 'f', onclick: () => { mapSel = null; renderMap(); } }, t('d.close'));
+  const close = h('button', { class: 'f', onclick: () => closeMapDetail(true) }, t('d.close'));
   const table = (head, rows) => h('div', { class: 'scroll' }, h('table', null, h('tr', null, head.map((x) => h('th', null, x))), rows));
   const toolCell = (u) => u ? h('span', null, h('span', { class: `tool ${u.tool}` }, u.tool), ' ', h('span', { class: 'mono' }, fit(u.what, 90)), u.refused || u.blocked ? h('span', { class: 'c-bad' }, t('d.refusedShort')) : null) : h('span', { class: 'muted' }, '—');
   const stTxt = { running: ['st.running', 'c-ok'], done: ['st.done', 'c-muted'], failed: ['st.failed', 'c-bad'], silent: ['st.silent', 'c-warn'] };
@@ -1303,6 +1368,8 @@ function renderMapDetail(force) {
       relaunchBlock(mapSel),
       f.items.slice(0, 16).map((l) => h('div', { class: 'row mono' }, [l.ts, tr(l.chip), tr(l.text), l.note].filter(Boolean).join('  '))));
   }
+  if (draftSel) { const ta = el.querySelector('.msgtext'); if (ta) { ta.focus({ preventScroll: true }); try { ta.setSelectionRange(draftSel[0], draftSel[1]); } catch {} } }
+  placeMapDetail();
 }
 
 // --- connexion temps réel (Server-Sent Events, reconnexion automatique), un flux par projet ---
@@ -1313,6 +1380,7 @@ function resetView() {
   if (bubbleMap) { bubbleMap.storeKey = null; for (const [, r] of bubbleMap.nodes) r.g.remove(); bubbleMap.nodes.clear(); for (const [, r] of bubbleMap.edges) r.g.remove(); bubbleMap.edges.clear(); bubbleMap.gP.replaceChildren(); }
   for (const id of ['journal', 'alerts', 'quotas', 'mapDetail']) fill($(id));
   $('mapDetail').hidden = true;
+  $('mapLink').toggleAttribute('hidden', true); $('mapWrap').style.minHeight = ''; popFor = null;
 }
 function connect() {
   if (es) es.close();
